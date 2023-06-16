@@ -7,19 +7,22 @@ import {
   User_Firestore,
   createFirestoreTimestamp,
 } from "@milkshakechat/helpers";
-import { generateUsername } from "../utils/username";
+import { generateAvailablePlaceholderNames } from "../utils/username";
 
 export const createUserFirestore = functions.auth
   .user()
   .onCreate(async (user) => {
     try {
       logger.log("Creating firestore record for user: ", user.uid);
-      const username = generateUsername();
+      const { username, displayName } =
+        await generateAvailablePlaceholderNames();
       const newUser: User_Firestore = {
         id: user.uid as UserID,
         username: username,
-        displayName: username,
+        displayName: displayName,
         bio: "",
+        avatar: "",
+        link: "",
         email: user.email || "",
         phone: user.phoneNumber || "",
         isCreator: false,
