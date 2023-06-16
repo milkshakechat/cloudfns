@@ -16,7 +16,7 @@
   "main": "lib/index.js",
   "dependencies": {
     "@google-cloud/secret-manager": "^4.2.2",
-    "@milkshakechat/helpers": "^1.0.12",
+    "@milkshakechat/helpers": "^1.0.15",
     "dotenv": "^16.1.4",
     "firebase": "^9.22.2",
     "firebase-admin": "^11.8.0",

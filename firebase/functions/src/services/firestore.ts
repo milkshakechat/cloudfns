@@ -24,3 +24,9 @@ export const checkIfUsernameAvailable = async (
   }
   return false;
 };
+
+export const createFirestoreTimestamp = (date?: Date) => {
+  const targetDate = date || new Date();
+  const timestamp = admin.firestore.Timestamp.fromDate(targetDate);
+  return timestamp;
+};
