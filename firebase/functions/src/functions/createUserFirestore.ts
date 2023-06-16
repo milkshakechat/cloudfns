@@ -5,9 +5,13 @@ admin.initializeApp();
 import {
   UserID,
   User_Firestore,
-  createFirestoreTimestamp,
+  defaultThemeColorHex,
+  genderEnum,
+  localeEnum,
+  privacyModeEnum,
 } from "@milkshakechat/helpers";
 import { generateAvailablePlaceholderNames } from "../utils/username";
+import { createFirestoreTimestamp } from "../services/firestore";
 
 export const createUserFirestore = functions.auth
   .user()
@@ -16,6 +20,7 @@ export const createUserFirestore = functions.auth
       logger.log("Creating firestore record for user: ", user.uid);
       const { username, displayName } =
         await generateAvailablePlaceholderNames();
+      const now = createFirestoreTimestamp();
       const newUser: User_Firestore = {
         id: user.uid as UserID,
         username: username,
@@ -26,9 +31,14 @@ export const createUserFirestore = functions.auth
         email: user.email || "",
         phone: user.phoneNumber || "",
         isCreator: false,
-        createdAt: createFirestoreTimestamp(),
+        createdAt: now,
         isPaidChat: false,
         disabled: false,
+        privacyMode: privacyModeEnum.private,
+        themeColor: defaultThemeColorHex,
+        language: localeEnum.english,
+        gender: genderEnum.other,
+        usernameLastUpdated: now,
       };
       const db = admin.firestore();
       await db.collection("users").doc(user.uid).set(newUser);
