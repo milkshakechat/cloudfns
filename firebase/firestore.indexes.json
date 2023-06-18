@@ -6,6 +6,13 @@
       "fields": [
         { "fieldPath": "username", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "pushTokens",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userID", "order": "ASCENDING" }
+      ]
     }
   ]
 }
