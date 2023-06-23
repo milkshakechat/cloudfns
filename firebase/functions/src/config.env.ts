@@ -7,6 +7,10 @@ const devConfig: ConfigEnv = {
       secretId: "firebase-init",
       versionId: "latest",
     },
+    FCM_SERVER_KEY: {
+      secretId: "fcm-server-key",
+      versionId: "latest",
+    },
   },
   FIREBASE: {
     apiKey: "AIzaSyAqVL1P4PsE40Bd-Mu8CnqwczpC-hSTaz0",
@@ -27,6 +31,10 @@ const stagingConfig: ConfigEnv = {
       secretId: "firebase-init",
       versionId: "latest",
     },
+    FCM_SERVER_KEY: {
+      secretId: "fcm-server-key",
+      versionId: "latest",
+    },
   },
   FIREBASE: {
     apiKey: "AIzaSyAqVL1P4PsE40Bd-Mu8CnqwczpC-hSTaz0",
@@ -45,6 +53,10 @@ const prodConfig: ConfigEnv = {
   SECRETS: {
     FIREBASE_CONFIG: {
       secretId: "firebase-init",
+      versionId: "latest",
+    },
+    FCM_SERVER_KEY: {
+      secretId: "fcm-server-key",
       versionId: "latest",
     },
   },
@@ -69,6 +81,7 @@ interface ConfigEnv {
   };
   SECRETS: {
     FIREBASE_CONFIG: SecretConfig;
+    FCM_SERVER_KEY: SecretConfig;
   };
   FIREBASE: {
     apiKey: string;

@@ -13,6 +13,13 @@
       "fields": [
         { "fieldPath": "userID", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "chatRooms",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "sendBirdChannelURL", "order": "ASCENDING" }
+      ]
     }
   ]
 }

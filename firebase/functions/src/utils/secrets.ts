@@ -57,3 +57,12 @@ export const getFirebaseConfig = async () => {
   });
   return JSON.parse(firebaseConfig) as FirebaseConfig;
 };
+
+export const getFCMServerKey = async () => {
+  const fcmServerKey = await accessSecretVersion({
+    projectId: config.GCLOUD.projectId,
+    secretId: config.SECRETS.FCM_SERVER_KEY.secretId,
+    versionId: config.SECRETS.FCM_SERVER_KEY.versionId,
+  });
+  return fcmServerKey;
+};

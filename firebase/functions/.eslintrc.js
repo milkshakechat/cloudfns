@@ -29,6 +29,6 @@ module.exports = {
     "quote-props": ["error", "as-needed"],
     camelcase: 0,
     "require-jsdoc": 0,
-    "max-len": ["error", { code: 100 }],
+    "max-len": ["error", { code: 200 }],
   },
 };
