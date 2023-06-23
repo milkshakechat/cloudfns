@@ -19,5 +19,10 @@ service firebase.storage {
     match /app-public-shared/{allPaths=**} {
     	allow read;
     }
+    
+    // Allow public read access to the folder /users/{userId}/avatars/resized-media
+    match /users/{userId}/avatars/resized-media/{allPaths=**} {
+      allow read;
+    }
   }
 }
