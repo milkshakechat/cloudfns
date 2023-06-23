@@ -72,7 +72,7 @@ export const handleSendBirdToFCM = async ({
           chatRoom.sendBirdPushNotifConfig[userID as UserID]
         ) {
           const config = chatRoom.sendBirdPushNotifConfig[userID as UserID];
-          console.log("config.allowPush", config.allowPush);
+          console.log(`config.allowPush for ${userID}`, config.allowPush);
           if (config.allowPush) {
             // proceed to handle the push notif
             return {
@@ -107,6 +107,10 @@ export const handleSendBirdToFCM = async ({
               proceedPush: true,
             };
           }
+          return {
+            userID,
+            proceedPush: false,
+          };
         }
         return {
           userID,
@@ -227,6 +231,12 @@ export const sendPushNotification = async (
 function isPastSnoozeTime(snoozeUntil: TimestampFirestore): boolean {
   const snoozeUntilDate = (snoozeUntil as any).toDate();
   const now = new Date();
+
+  console.log(`Comparing:
+  
+  snoozeUntilDate = ${snoozeUntilDate}
+  now = ${now}
+  `);
 
   return snoozeUntilDate <= now;
 }
