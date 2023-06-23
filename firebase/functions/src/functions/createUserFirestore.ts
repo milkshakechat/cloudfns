@@ -5,6 +5,7 @@ admin.initializeApp();
 import {
   UserID,
   User_Firestore,
+  Username,
   defaultThemeColorHex,
   genderEnum,
   localeEnum,
@@ -23,7 +24,7 @@ export const createUserFirestore = functions.auth
       const now = createFirestoreTimestamp();
       const newUser: User_Firestore = {
         id: user.uid as UserID,
-        username: username,
+        username: username as Username,
         displayName: displayName,
         bio: "",
         avatar: "",

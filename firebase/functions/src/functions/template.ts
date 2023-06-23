@@ -8,11 +8,12 @@
  */
 
 // import { onRequest } from "firebase-functions/v2/https";
-
-// Start writing functions
-// https://firebase.google.com/docs/functions/typescript
-
+// import * as logger from "firebase-functions/logger";
+//
 // export const helloWorld = onRequest((request, response) => {
+// console.log(`----> helloWorld`);
+// const data = request.body;
+//   console.log(data);
 //   logger.info("Hello logs!", {structuredData: true});
 //   response.send("Hello from Firebase!");
 // });
