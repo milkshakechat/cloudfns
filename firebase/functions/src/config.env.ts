@@ -1,3 +1,5 @@
+import { BucketDef } from "@milkshakechat/helpers";
+
 const devConfig: ConfigEnv = {
   GCLOUD: {
     projectId: "milkshake-dev-faf77",
@@ -20,6 +22,12 @@ const devConfig: ConfigEnv = {
     messagingSenderId: "642004369083",
     appId: "1:642004369083:web:74b7c685be091ce6b4f39e",
     measurementId: "G-N0YXCSQJ89",
+  },
+  VIDEO_TRANSCODER: {
+    bucket: {
+      name: "user-stories-social",
+      location: "asia-northeast1",
+    },
   },
 };
 const stagingConfig: ConfigEnv = {
@@ -45,6 +53,12 @@ const stagingConfig: ConfigEnv = {
     appId: "1:642004369083:web:74b7c685be091ce6b4f39e",
     measurementId: "G-N0YXCSQJ89",
   },
+  VIDEO_TRANSCODER: {
+    bucket: {
+      name: "user-stories-social",
+      location: "asia-northeast1",
+    },
+  },
 };
 const prodConfig: ConfigEnv = {
   GCLOUD: {
@@ -69,6 +83,12 @@ const prodConfig: ConfigEnv = {
     appId: "1:642004369083:web:74b7c685be091ce6b4f39e",
     measurementId: "G-N0YXCSQJ89",
   },
+  VIDEO_TRANSCODER: {
+    bucket: {
+      name: "user-stories-social",
+      location: "asia-northeast1",
+    },
+  },
 };
 
 interface SecretConfig {
@@ -91,6 +111,9 @@ interface ConfigEnv {
     messagingSenderId: string;
     appId: string;
     measurementId: string;
+  };
+  VIDEO_TRANSCODER: {
+    bucket: BucketDef;
   };
 }
 
