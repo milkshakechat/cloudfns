@@ -28,5 +28,12 @@ service firebase.storage {
     match /users/{userId}/story/image/resized-media/{allPaths=**} {
       allow read;
     }
+    // Allow public read access to the folder /users/{userId}/story/video/{videoId}/thumbnails
+    match /users/{userId}/story/IMAGE/{assetId}/resized-media/{allPaths=**} {
+      allow read;
+    }
+    match /users/{userId}/story/VIDEO/{assetId}/resized-media/{allPaths=**} {
+      allow read;
+    }
   }
 }

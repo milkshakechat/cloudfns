@@ -3,8 +3,10 @@
 ## default firebase storage bucket
 bucket=`milkshake-dev-faf77.appspot.com`
 ```
-GCP bucket for user avatars
+GCP bucket for user avatars & file upload
 ```
+Permissions:
+- `cloudfns.serviceAccount` can read & write this bucket
 
 ## user-stories-social
 bucket=`user-stories-social`
