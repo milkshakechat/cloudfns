@@ -66,3 +66,13 @@ export const getFCMServerKey = async () => {
   });
   return fcmServerKey;
 };
+
+export const accessLocalGCPKeyFile = async () => {
+  // path to repo working directory
+  const base64KeyFile = Buffer.from(
+    process.env.CLOUDFNS_BASE64_KEY || "",
+    "base64"
+  ).toString("utf-8");
+  const credentials = JSON.parse(base64KeyFile);
+  return credentials;
+};
