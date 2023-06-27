@@ -15,8 +15,10 @@ import * as fs from "fs";
 import config from "../config.env";
 import { createVideoTranscodingJob } from "../services/video-transcoder";
 import { Storage_GCP, initStorageBucket_GCP } from "../services/private-bucket";
-import * as dotenv from "dotenv";
 import { protos } from "@google-cloud/video-transcoder";
+
+import * as dotenv from "dotenv";
+import { getVideoFileExtension } from "@milkshakechat/helpers";
 dotenv.config();
 
 /**
@@ -59,12 +61,16 @@ export const onUploadVideoStory = onObjectFinalized(
       // const filePath =
       //   "users/bpSkq4bQFuWYoj7xtGD8pr5gUdD3/story/video/0b640182-7ff9-437a-9401-b01d83515a54.mp4";
       // console.log(transformFilePath(filePath)); // "users/bpSkq4bQFuWYoj7xtGD8pr5gUdD3/story/video/0b640182-7ff9-437a-9401-b01d83515a54/video-streaming/"
-      const folderPath = filePath.replace(/(\.mp4)$/, "/video-streaming/");
+      const folderPath = filePath.replace(
+        /(\.mp4|\.MP4|\.mov|\.MOV|\.3gp|\.3GP)$/,
+        "/video-streaming/"
+      );
       return folderPath;
     }
 
+    const extensionType = getVideoFileExtension(filePath);
     const TEMP_LOCAL_FOLDER = "/tmp/thumbnails";
-    const TEMP_LOCAL_FILE = `${TEMP_LOCAL_FOLDER}/original-${assetID}.mp4`;
+    const TEMP_LOCAL_FILE = `${TEMP_LOCAL_FOLDER}/original-${assetID}.${extensionType}`;
     const TARGET_THUMBNAIL_FILENAME = `thumbnail-${assetID}.jpeg`;
 
     console.log("TEMP_LOCAL_FOLDER", TEMP_LOCAL_FOLDER);
@@ -72,7 +78,7 @@ export const onUploadVideoStory = onObjectFinalized(
     console.log("TARGET_THUMBNAIL_FILENAME", TARGET_THUMBNAIL_FILENAME);
 
     const BUCKET_FILE_ROUTE = filePath.replace(
-      `${assetID}.mp4`,
+      `${assetID}.${extensionType}`,
       TARGET_THUMBNAIL_FILENAME
     );
 
@@ -168,7 +174,25 @@ export const onUploadVideoStory = onObjectFinalized(
           },
         },
         {
+          key: "video-mp4",
+          videoStream: {
+            h264: {
+              heightPixels: target720p.height,
+              widthPixels: target720p.width,
+              bitrateBps: 2500000,
+              frameRate: targetFrameRate,
+            },
+          },
+        },
+        {
           key: "audio-stream0",
+          audioStream: {
+            codec: "aac",
+            bitrateBps: 128000,
+          },
+        },
+        {
+          key: "audio-mp4",
           audioStream: {
             codec: "aac",
             bitrateBps: 128000,
@@ -191,6 +215,11 @@ export const onUploadVideoStory = onObjectFinalized(
           segmentSettings: {
             segmentDuration: { seconds: 3 },
           },
+        },
+        {
+          key: "standard-video",
+          container: "mp4",
+          elementaryStreams: ["video-mp4", "audio-mp4"],
         },
       ],
       manifests: [
