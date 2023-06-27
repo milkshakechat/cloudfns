@@ -85,6 +85,8 @@ export const onUploadVideoStory = onObjectFinalized(
     // Get the video metadata
     const videoMetadata = await getVideoMetadata(TEMP_LOCAL_FILE);
 
+    console.log("videoMetadata", videoMetadata);
+
     // Create the screenshot
     ffmpeg({ source: TEMP_LOCAL_FILE })
       .screenshot({
@@ -135,6 +137,12 @@ export const onUploadVideoStory = onObjectFinalized(
       },
       TargetDim.p720
     );
+    const targetFrameRate =
+      videoMetadata.frameRate &&
+      videoMetadata.frameRate > 0 &&
+      videoMetadata.frameRate < 120
+        ? videoMetadata.frameRate
+        : 30;
     const videoTranscodingConfig = {
       elementaryStreams: [
         {
@@ -144,7 +152,7 @@ export const onUploadVideoStory = onObjectFinalized(
               heightPixels: target720p.height,
               widthPixels: target720p.width,
               bitrateBps: 2500000,
-              frameRate: videoMetadata.frameRate || 30,
+              frameRate: targetFrameRate,
             },
           },
         },
@@ -155,7 +163,7 @@ export const onUploadVideoStory = onObjectFinalized(
               heightPixels: target360p.height,
               widthPixels: target360p.width,
               bitrateBps: 1000000,
-              frameRate: videoMetadata.frameRate || 30,
+              frameRate: targetFrameRate,
             },
           },
         },
@@ -173,7 +181,7 @@ export const onUploadVideoStory = onObjectFinalized(
           container: "ts",
           elementaryStreams: ["video-stream720", "audio-stream0"],
           segmentSettings: {
-            segmentDuration: { seconds: 5 },
+            segmentDuration: { seconds: 3 },
           },
         },
         {
@@ -181,7 +189,7 @@ export const onUploadVideoStory = onObjectFinalized(
           container: "ts",
           elementaryStreams: ["video-stream360", "audio-stream0"],
           segmentSettings: {
-            segmentDuration: { seconds: 5 },
+            segmentDuration: { seconds: 3 },
           },
         },
       ],
