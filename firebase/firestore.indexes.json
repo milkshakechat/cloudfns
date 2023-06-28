@@ -20,6 +20,15 @@
       "fields": [
         { "fieldPath": "sendBirdChannelURL", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "stories",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userID", "order": "ASCENDING" },
+        { "fieldPath": "expiryDate", "order": "ASCENDING" }
+      ]
     }
+    
   ]
 }
