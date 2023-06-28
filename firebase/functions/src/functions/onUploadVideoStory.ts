@@ -13,9 +13,12 @@ import * as ffmpeg from "fluent-ffmpeg";
 import { mkdirp } from "mkdirp";
 import * as fs from "fs";
 import config from "../config.env";
-import { createJobFromPreset } from "../services/video-transcoder";
+import { createVideoTranscodingJob } from "../services/video-transcoder";
 import { Storage_GCP, initStorageBucket_GCP } from "../services/private-bucket";
+import { protos } from "@google-cloud/video-transcoder";
+
 import * as dotenv from "dotenv";
+import { getVideoFileExtension } from "@milkshakechat/helpers";
 dotenv.config();
 
 /**
@@ -58,48 +61,16 @@ export const onUploadVideoStory = onObjectFinalized(
       // const filePath =
       //   "users/bpSkq4bQFuWYoj7xtGD8pr5gUdD3/story/video/0b640182-7ff9-437a-9401-b01d83515a54.mp4";
       // console.log(transformFilePath(filePath)); // "users/bpSkq4bQFuWYoj7xtGD8pr5gUdD3/story/video/0b640182-7ff9-437a-9401-b01d83515a54/video-streaming/"
-      const folderPath = filePath.replace(/(\.mp4)$/, "/video-streaming/");
+      const folderPath = filePath.replace(
+        /(\.mp4|\.MP4|\.mov|\.MOV|\.3gp|\.3GP)$/,
+        "/video-streaming/"
+      );
       return folderPath;
     }
 
-    // create a video transcoding job
-    console.log("create a video transcoding job");
-    const output = `gs://${outputBucketForTranscoding}/${transformFilePath(
-      filePath
-    )}`;
-    const jobId = await createJobFromPreset({
-      inputUri: `gs://${fileBucket}/${filePath}`,
-      outputUri: output,
-    });
-    console.log(`Got JobID = ${jobId}`);
-
-    // create a thumbnail for this video
-    // const TEMP_LOCAL_FOLDER = "/tmp/";
-    // console.log("TEMP_LOCAL_FOLDER", TEMP_LOCAL_FOLDER);
-    // const filePathSplit = filePath.split("/");
-    // console.log("filePathSplit", filePathSplit);
-    // const fileName = filePathSplit.pop() || "";
-    // console.log("fileName", fileName);
-    // const fileNameSplit = fileName.split(".");
-    // console.log("fileNameSplit", fileNameSplit);
-    // const baseFileName = fileNameSplit.join(".");
-    // console.log("baseFileName", baseFileName);
-    // const fileDir =
-    //   filePathSplit.join("/") +
-    //   "/thumbnails" +
-    //   (filePathSplit.length > 0 ? "/" : "");
-    // const ThumbnailFilePath = `${fileDir}${baseFileName.replace(
-    //   ".mp4",
-    //   ""
-    // )}-thumbnail.jpeg`;
-    // console.log("fileDir", fileDir);
-    // const tempLocalDir = `${TEMP_LOCAL_FOLDER}${fileDir}`;
-    // console.log("tempLocalDir", tempLocalDir);
-    // const tempLocalFile = `${tempLocalDir}${fileName}`;
-    // console.log("tempLocalFile", tempLocalFile);
-
+    const extensionType = getVideoFileExtension(filePath);
     const TEMP_LOCAL_FOLDER = "/tmp/thumbnails";
-    const TEMP_LOCAL_FILE = `${TEMP_LOCAL_FOLDER}/original-${assetID}.mp4`;
+    const TEMP_LOCAL_FILE = `${TEMP_LOCAL_FOLDER}/original-${assetID}.${extensionType}`;
     const TARGET_THUMBNAIL_FILENAME = `thumbnail-${assetID}.jpeg`;
 
     console.log("TEMP_LOCAL_FOLDER", TEMP_LOCAL_FOLDER);
@@ -107,7 +78,7 @@ export const onUploadVideoStory = onObjectFinalized(
     console.log("TARGET_THUMBNAIL_FILENAME", TARGET_THUMBNAIL_FILENAME);
 
     const BUCKET_FILE_ROUTE = filePath.replace(
-      `${assetID}.mp4`,
+      `${assetID}.${extensionType}`,
       TARGET_THUMBNAIL_FILENAME
     );
 
@@ -116,6 +87,11 @@ export const onUploadVideoStory = onObjectFinalized(
     // Download item from bucket
     const gbucket = Storage_GCP.bucket(config.FIREBASE.storageBucket);
     await gbucket.file(filePath).download({ destination: TEMP_LOCAL_FILE });
+
+    // Get the video metadata
+    const videoMetadata = await getVideoMetadata(TEMP_LOCAL_FILE);
+
+    console.log("videoMetadata", videoMetadata);
 
     // Create the screenshot
     ffmpeg({ source: TEMP_LOCAL_FILE })
@@ -147,8 +123,210 @@ export const onUploadVideoStory = onObjectFinalized(
         console.log("error", err);
         console.log("---- error occurred");
       });
+
+    // create a video transcoding job
+    console.log("create a video transcoding job");
+    const output = `gs://${outputBucketForTranscoding}/${transformFilePath(
+      filePath
+    )}`;
+    const target360p = resizeVideoMaintainAspect(
+      {
+        width: videoMetadata.width || 360,
+        height: videoMetadata.height || (360 * 2) / 3,
+      },
+      TargetDim.p360
+    );
+    const target720p = resizeVideoMaintainAspect(
+      {
+        width: videoMetadata.width || 720,
+        height: videoMetadata.height || (720 * 2) / 3,
+      },
+      TargetDim.p720
+    );
+    const targetFrameRate =
+      videoMetadata.frameRate &&
+      videoMetadata.frameRate > 0 &&
+      videoMetadata.frameRate < 120
+        ? videoMetadata.frameRate
+        : 30;
+    const videoTranscodingConfig = {
+      elementaryStreams: [
+        {
+          key: "video-stream720",
+          videoStream: {
+            h264: {
+              heightPixels: target720p.height,
+              widthPixels: target720p.width,
+              bitrateBps: 2500000,
+              frameRate: targetFrameRate,
+            },
+          },
+        },
+        {
+          key: "video-stream360",
+          videoStream: {
+            h264: {
+              heightPixels: target360p.height,
+              widthPixels: target360p.width,
+              bitrateBps: 1000000,
+              frameRate: targetFrameRate,
+            },
+          },
+        },
+        {
+          key: "video-mp4",
+          videoStream: {
+            h264: {
+              heightPixels: target720p.height,
+              widthPixels: target720p.width,
+              bitrateBps: 2500000,
+              frameRate: targetFrameRate,
+            },
+          },
+        },
+        {
+          key: "audio-stream0",
+          audioStream: {
+            codec: "aac",
+            bitrateBps: 128000,
+          },
+        },
+        {
+          key: "audio-mp4",
+          audioStream: {
+            codec: "aac",
+            bitrateBps: 128000,
+          },
+        },
+      ],
+      muxStreams: [
+        {
+          key: "stream720",
+          container: "ts",
+          elementaryStreams: ["video-stream720", "audio-stream0"],
+          segmentSettings: {
+            segmentDuration: { seconds: 3 },
+          },
+        },
+        {
+          key: "stream360",
+          container: "ts",
+          elementaryStreams: ["video-stream360", "audio-stream0"],
+          segmentSettings: {
+            segmentDuration: { seconds: 3 },
+          },
+        },
+        {
+          key: "standard-video",
+          container: "mp4",
+          elementaryStreams: ["video-mp4", "audio-mp4"],
+        },
+      ],
+      manifests: [
+        {
+          fileName: "manifest.m3u8",
+          type: protos.google.cloud.video.transcoder.v1.Manifest.ManifestType
+            .HLS,
+          muxStreams: ["stream720", "stream360"],
+        },
+      ],
+    };
+    const jobId = await createVideoTranscodingJob({
+      inputUri: `gs://${fileBucket}/${filePath}`,
+      outputUri: output,
+      config: videoTranscodingConfig,
+    });
+    console.log(`Got JobID = ${jobId}`);
     return jobId;
   }
 );
 
 // `https://firebasestorage.googleapis.com/v0/b/${config.FIREBASE.storageBucket}/o/users/${userID}/story/video/${assetID}/thumbnails/${assetID}-thumbnail.jpeg?alt=media`;
+
+interface VideoMetadata {
+  width?: number;
+  height?: number;
+  duration?: number;
+  aspectRatio?: number;
+  frameRate?: number;
+  videoCodec?: string;
+  audioCodec?: string;
+  originalSource?: string;
+}
+export const getVideoMetadata = async (
+  localFilePath: string
+): Promise<VideoMetadata> => {
+  if (!fs.existsSync(localFilePath)) {
+    throw new Error(`File does not exist at localFilePath=${localFilePath}`);
+  }
+
+  return new Promise((resolve, reject) => {
+    const metadata: VideoMetadata = {};
+
+    ffmpeg.ffprobe(localFilePath, (error, data) => {
+      if (error) {
+        reject(error);
+      } else {
+        const videoStream = data.streams.find(
+          (stream) => stream.codec_type === "video"
+        );
+        const audioStream = data.streams.find(
+          (stream) => stream.codec_type === "audio"
+        );
+
+        if (videoStream) {
+          metadata.width = videoStream.width;
+          metadata.height = videoStream.height;
+          metadata.duration = parseFloat(videoStream.duration || "0");
+          metadata.aspectRatio = videoStream.display_aspect_ratio
+            ? parseFloat(videoStream.display_aspect_ratio)
+            : metadata.width && metadata.height
+            ? metadata.width / metadata.height
+            : undefined;
+          metadata.frameRate = videoStream.avg_frame_rate
+            ? parseFloat(videoStream.avg_frame_rate)
+            : undefined;
+          metadata.videoCodec = videoStream.codec_name;
+        }
+
+        if (audioStream) {
+          metadata.audioCodec = audioStream.codec_name;
+        }
+
+        metadata.originalSource = localFilePath;
+
+        resolve(metadata);
+      }
+    });
+  });
+};
+
+interface VideoDim {
+  width: number;
+  height: number;
+}
+enum TargetDim {
+  "p360" = 360,
+  "p720" = 720,
+}
+
+const resizeVideoMaintainAspect = (
+  input: VideoDim,
+  target: TargetDim
+): VideoDim => {
+  // determine which is smaller: width or height
+  const smallestDimension = Math.min(input.width, input.height);
+
+  // calculate the ratio between the target size and the smallest dimension
+  const ratio = target / smallestDimension;
+
+  // calculate the new dimensions
+  const newWidth = Math.round(input.width * ratio);
+  const newHeight = Math.round(input.height * ratio);
+
+  // return the new dimensions
+  return {
+    width: newWidth,
+    height: newHeight,
+  };
+};

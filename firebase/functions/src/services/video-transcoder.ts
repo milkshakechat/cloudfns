@@ -1,5 +1,5 @@
 import config from "../config.env";
-import { v1 } from "@google-cloud/video-transcoder";
+import { v1, protos } from "@google-cloud/video-transcoder";
 const { TranscoderServiceClient } = v1;
 
 /**
@@ -24,27 +24,34 @@ export const listVideoTranscoderJobs = async () => {
   }
 };
 
-// create video transcoder job
+// create video transcoder job from preset
 export type GoogleCloudBucketObjectURI = string;
-export const createJobFromPreset = async ({
+export const createVideoTranscodingJob = async ({
   inputUri,
   outputUri,
+  config,
 }: {
   inputUri: GoogleCloudBucketObjectURI;
   outputUri: GoogleCloudBucketObjectURI;
+  config?: protos.google.cloud.video.transcoder.v1.IJobConfig;
 }) => {
   // inputUri = 'gs://my-bucket/my-video-file';
   // outputUri = 'gs://my-bucket/my-output-folder/';
 
   // Construct request
-  const request = {
+  const request: protos.google.cloud.video.transcoder.v1.ICreateJobRequest = {
     parent: client.locationPath(projectId, location),
     job: {
       inputUri: inputUri,
       outputUri: outputUri,
-      templateId: preset,
     },
   };
+
+  if (config && request.job) {
+    request.job.config = config;
+  } else if (request.job) {
+    request.job.templateId = preset;
+  }
 
   // Run request
   const [response] = await client.createJob(request);
