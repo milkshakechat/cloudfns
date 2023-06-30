@@ -13,7 +13,10 @@ Config:
 ```
 - Paths that contain images you want to resize (Optional)
 ```
-/users/*/avatars,/users/*/story/IMAGE
+/users/*/avatars,
+/users/*/story/IMAGE,
+/users/*/wishlist,
+/users/*/sticker
 ```
 - `jpeg` Convert image to preferred types
 - `yes` GIF and WEBP animated option (Optional)
