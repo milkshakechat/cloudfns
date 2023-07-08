@@ -39,6 +39,7 @@ export const createUserFirestore = functions.auth
         themeColor: defaultThemeColorHex,
         language: localeEnum.english,
         gender: genderEnum.other,
+        interestedIn: [],
         usernameLastUpdated: now,
       };
       const db = admin.firestore();
