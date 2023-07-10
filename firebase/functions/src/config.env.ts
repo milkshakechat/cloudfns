@@ -13,6 +13,10 @@ const devConfig: ConfigEnv = {
       secretId: "fcm-server-key",
       versionId: "latest",
     },
+    STRIPE_SERVER_KEY: {
+      secretId: "stripe-private-key",
+      versionId: "latest",
+    },
   },
   FIREBASE: {
     apiKey: "AIzaSyAqVL1P4PsE40Bd-Mu8CnqwczpC-hSTaz0",
@@ -41,6 +45,10 @@ const stagingConfig: ConfigEnv = {
     },
     FCM_SERVER_KEY: {
       secretId: "fcm-server-key",
+      versionId: "latest",
+    },
+    STRIPE_SERVER_KEY: {
+      secretId: "stripe-private-key",
       versionId: "latest",
     },
   },
@@ -73,6 +81,10 @@ const prodConfig: ConfigEnv = {
       secretId: "fcm-server-key",
       versionId: "latest",
     },
+    STRIPE_SERVER_KEY: {
+      secretId: "stripe-private-key",
+      versionId: "latest",
+    },
   },
   FIREBASE: {
     apiKey: "AIzaSyAqVL1P4PsE40Bd-Mu8CnqwczpC-hSTaz0",
@@ -102,6 +114,7 @@ interface ConfigEnv {
   SECRETS: {
     FIREBASE_CONFIG: SecretConfig;
     FCM_SERVER_KEY: SecretConfig;
+    STRIPE_SERVER_KEY: SecretConfig;
   };
   FIREBASE: {
     apiKey: string;

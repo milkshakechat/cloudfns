@@ -17,6 +17,8 @@ import {
 import { generateAvailablePlaceholderNames } from "../utils/username";
 import { createFirestoreTimestamp } from "../services/firestore";
 import { v4 as uuidv4 } from "uuid";
+import { sleep } from "../utils/utils";
+import { createCustomerStripe } from "../services/stripe";
 
 export const createUserFirestore = functions.auth
   .user()
@@ -64,6 +66,14 @@ export const createUserFirestore = functions.auth
       ]);
       logger.log("User document written with ID: ", user.uid);
       logger.log("Wallet document written with ID: ", walletID);
+
+      await sleep(5000); // sleep 5 seconds to allow firestore to write
+
+      // create stripe customer
+      await createCustomerStripe({
+        milkshakeUserID: user.uid as UserID,
+        walletID: walletID as WalletID,
+      });
     } catch (e) {
       console.error("Error adding document: ", e);
     }
