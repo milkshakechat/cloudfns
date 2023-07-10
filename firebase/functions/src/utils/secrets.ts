@@ -76,3 +76,12 @@ export const accessLocalGCPKeyFile = async () => {
   const credentials = JSON.parse(base64KeyFile);
   return credentials;
 };
+
+export const getStripeSecret = async () => {
+  const stripeSecret = await accessSecretVersion({
+    projectId: config.GCLOUD.projectId,
+    secretId: config.SECRETS.STRIPE_SERVER_KEY.secretId,
+    versionId: config.SECRETS.STRIPE_SERVER_KEY.versionId,
+  });
+  return stripeSecret;
+};
