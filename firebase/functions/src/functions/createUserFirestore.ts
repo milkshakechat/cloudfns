@@ -57,7 +57,8 @@ export const createUserFirestore = functions.auth
         title: `Main Wallet for User ${user.uid}`,
         createdAt: now,
         note: "Created automatically upon user creation.",
-        cookieBalance: 0,
+        cookieBalanceSnapshot: 0,
+        lastSnapshotTime: now,
       };
       const db = admin.firestore();
       await Promise.all([
