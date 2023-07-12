@@ -17,8 +17,70 @@ import { Query, QueryDocumentSnapshot } from "firebase-admin/firestore";
 import { createFirestoreTimestamp, updateFirestoreDoc } from "./firestore";
 import { getFCMServerKey } from "../utils/secrets";
 import axios from "axios";
-import { SubscribedEventGroupChannelMessageSend } from "../functions/sendbirdPushNotifications.webhook";
 import { Message } from "firebase-admin/lib/messaging/messaging-api";
+
+export interface SubscribedEventGroupChannelMessageSend {
+  category: string;
+  sender: {
+    user_id: string;
+    nickname: string;
+    profile_url: string;
+    metadata: Record<string, unknown>;
+  };
+  silent: boolean;
+  sender_ip_addr: string;
+  custom_type: string;
+  mention_type: string;
+  mentioned_users: any[]; // You may want to specify a type for the elements if possible
+  parent_message_id?: number;
+  members: {
+    user_id: string;
+    nickname: string;
+    profile_url: string;
+    is_active: boolean;
+    is_online: boolean;
+    is_hidden: number;
+    state: string;
+    is_blocking_sender: boolean;
+    is_blocked_by_sender: boolean;
+    unread_message_count: number;
+    total_unread_message_count: number;
+    channel_unread_message_count: number;
+    channel_mention_count: number;
+    push_enabled: boolean;
+    push_trigger_option: string;
+    do_not_disturb: boolean;
+    metadata: Record<string, unknown>;
+  }[];
+  type: string;
+  payload: {
+    message_id: number;
+    custom_type: string;
+    message: string;
+    translations: Record<string, string>;
+    created_at: number;
+    data: string;
+  };
+  message_events: {
+    update_last_message: boolean;
+    update_unread_count: boolean;
+    update_mention_count: boolean;
+    send_push_notification: string;
+  };
+  channel: {
+    name: string;
+    channel_url: string;
+    custom_type: string;
+    is_distinct: boolean;
+    is_public: boolean;
+    is_super: boolean;
+    is_ephemeral: boolean;
+    is_discoverable: boolean;
+    data: string;
+  };
+  sdk: string;
+  app_id: string;
+}
 
 export const handleSendBirdToFCM = async ({
   channelUrl,

@@ -24,7 +24,7 @@ dotenv.config();
 /**
  * FFMPEG only works on Node16 cloud functions!
  */
-export const onUploadVideoStory = onObjectFinalized(
+export const onuploadvideostory = onObjectFinalized(
   { bucket: config.FIREBASE.storageBucket },
   async (event) => {
     console.log(`onUploadVideoStory... ${new Date().toISOString()}}`);
@@ -253,7 +253,7 @@ interface VideoMetadata {
   audioCodec?: string;
   originalSource?: string;
 }
-export const getVideoMetadata = async (
+const getVideoMetadata = async (
   localFilePath: string
 ): Promise<VideoMetadata> => {
   if (!fs.existsSync(localFilePath)) {
