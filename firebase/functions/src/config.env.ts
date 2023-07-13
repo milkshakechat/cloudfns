@@ -17,6 +17,10 @@ const devConfig: ConfigEnv = {
       secretId: "stripe-private-key",
       versionId: "latest",
     },
+    CREATE_WALLET_XCLOUD_AWS: {
+      secretId: "xcloud-create-wallet-gcp-to-aws-api-gateway",
+      versionId: "latest",
+    },
   },
   FIREBASE: {
     apiKey: "AIzaSyAqVL1P4PsE40Bd-Mu8CnqwczpC-hSTaz0",
@@ -32,6 +36,9 @@ const devConfig: ConfigEnv = {
       name: "user-stories-social",
       location: "asia-northeast1",
     },
+  },
+  CREATE_WALLET: {
+    url: "https://xcloud-api-gateway.execute-api.ap-northeast-1.amazonaws.com/dev/create-wallet",
   },
 };
 const stagingConfig: ConfigEnv = {
@@ -51,6 +58,10 @@ const stagingConfig: ConfigEnv = {
       secretId: "stripe-private-key",
       versionId: "latest",
     },
+    CREATE_WALLET_XCLOUD_AWS: {
+      secretId: "xcloud-create-wallet-gcp-to-aws-api-gateway",
+      versionId: "latest",
+    },
   },
   FIREBASE: {
     apiKey: "AIzaSyAqVL1P4PsE40Bd-Mu8CnqwczpC-hSTaz0",
@@ -66,6 +77,9 @@ const stagingConfig: ConfigEnv = {
       name: "user-stories-social",
       location: "asia-northeast1",
     },
+  },
+  CREATE_WALLET: {
+    url: "https://xcloud-api-gateway.execute-api.ap-northeast-1.amazonaws.com/dev/create-wallet",
   },
 };
 const prodConfig: ConfigEnv = {
@@ -85,6 +99,10 @@ const prodConfig: ConfigEnv = {
       secretId: "stripe-private-key",
       versionId: "latest",
     },
+    CREATE_WALLET_XCLOUD_AWS: {
+      secretId: "xcloud-create-wallet-gcp-to-aws-api-gateway",
+      versionId: "latest",
+    },
   },
   FIREBASE: {
     apiKey: "AIzaSyAqVL1P4PsE40Bd-Mu8CnqwczpC-hSTaz0",
@@ -101,6 +119,9 @@ const prodConfig: ConfigEnv = {
       location: "asia-northeast1",
     },
   },
+  CREATE_WALLET: {
+    url: "https://xcloud-api-gateway.execute-api.ap-northeast-1.amazonaws.com/dev/create-wallet",
+  },
 };
 
 interface SecretConfig {
@@ -115,6 +136,7 @@ interface ConfigEnv {
     FIREBASE_CONFIG: SecretConfig;
     FCM_SERVER_KEY: SecretConfig;
     STRIPE_SERVER_KEY: SecretConfig;
+    CREATE_WALLET_XCLOUD_AWS: SecretConfig;
   };
   FIREBASE: {
     apiKey: string;
@@ -127,6 +149,9 @@ interface ConfigEnv {
   };
   VIDEO_TRANSCODER: {
     bucket: BucketDef;
+  };
+  CREATE_WALLET: {
+    url: string;
   };
 }
 

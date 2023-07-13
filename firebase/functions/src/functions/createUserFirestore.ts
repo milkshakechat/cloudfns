@@ -19,6 +19,8 @@ import { createFirestoreTimestamp } from "../services/firestore";
 import { v4 as uuidv4 } from "uuid";
 import { sleep } from "../utils/utils";
 import { createCustomerStripe } from "../services/stripe";
+import { getCreateWalletXCloudAWSSecret } from "../utils/secrets";
+import config from "../config.env";
 
 export const createuserfirestore = functions.auth
   .user()
@@ -50,23 +52,37 @@ export const createuserfirestore = functions.auth
         usernameLastUpdated: now,
         mainWalletID: walletID as WalletID,
       };
-      const newWallet: Wallet_Firestore = {
-        id: walletID as WalletID,
-        ownerID: user.uid as UserID,
-        hasMerchantPrivilege: false,
-        title: `Main Wallet for User ${user.uid}`,
-        createdAt: now,
-        note: "Created automatically upon user creation.",
-        cookieBalanceSnapshot: 0,
-        lastSnapshotTime: now,
-      };
+
+      // create new wallet
+      // const xcloudSecret = await getCreateWalletXCloudAWSSecret();
+      // const xcloudResponse = await fetch(config.CREATE_WALLET.url, {
+      //   method: "POST",
+      //   headers: {
+      //     "Content-Type": "application/json",
+      //     "x-api-key": xcloudSecret,
+      //   },
+      //   body: JSON.stringify({
+      //     walletID: walletID,
+      //   }),
+      // });
+
+      // const newWallet: Wallet_Firestore = {
+      //   id: walletID as WalletID,
+      //   ownerID: user.uid as UserID,
+      //   hasMerchantPrivilege: false,
+      //   title: `Main Wallet for User ${user.uid}`,
+      //   createdAt: now,
+      //   note: "Created automatically upon user creation.",
+      //   cookieBalanceSnapshot: 0,
+      //   lastSnapshotTime: now,
+      // };
       const db = admin.firestore();
       await Promise.all([
         db.collection(FirestoreCollection.USERS).doc(user.uid).set(newUser),
-        db.collection(FirestoreCollection.WALLETS).doc(user.uid).set(newWallet),
+        // db.collection(FirestoreCollection.WALLETS).doc(user.uid).set(newWallet),
       ]);
       logger.log("User document written with ID: ", user.uid);
-      logger.log("Wallet document written with ID: ", walletID);
+      // logger.log("Wallet document written with ID: ", walletID);
 
       await sleep(5000); // sleep 5 seconds to allow firestore to write
 
@@ -79,3 +95,38 @@ export const createuserfirestore = functions.auth
       console.error("Error adding document: ", e);
     }
   });
+
+// Use this code snippet in your app.
+// If you need more information about configurations or implementing the sample code, visit the AWS docs:
+// https://docs.aws.amazon.com/sdk-for-javascript/v3/developer-guide/getting-started.html
+
+// how to import AWS secret (use on aws api-gateway)
+// import {
+//   SecretsManagerClient,
+//   GetSecretValueCommand,
+// } from "@aws-sdk/client-secrets-manager";
+
+// const secret_name = "xcloud-create-wallet-gcp-to-aws-api-gateway";
+
+// const client = new SecretsManagerClient({
+//   region: "ap-northeast-1",
+// });
+
+// let response;
+
+// try {
+//   response = await client.send(
+//     new GetSecretValueCommand({
+//       SecretId: secret_name,
+//       VersionStage: "AWSCURRENT", // VersionStage defaults to AWSCURRENT if unspecified
+//     })
+//   );
+// } catch (error) {
+//   // For a list of exceptions thrown, see
+//   // https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
+//   throw error;
+// }
+
+// const secret = response.SecretString;
+
+// // Your code goes here
