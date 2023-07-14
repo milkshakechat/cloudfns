@@ -85,3 +85,12 @@ export const getStripeSecret = async () => {
   });
   return stripeSecret;
 };
+
+export const getCreateWalletXCloudAWSSecret = async () => {
+  const xcloudSecret = await accessSecretVersion({
+    projectId: config.GCLOUD.projectId,
+    secretId: config.SECRETS.CREATE_WALLET_XCLOUD_AWS.secretId,
+    versionId: config.SECRETS.CREATE_WALLET_XCLOUD_AWS.versionId,
+  });
+  return xcloudSecret;
+};

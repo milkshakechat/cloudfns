@@ -1,24 +1,13 @@
 # AWS IAM
 
-## Create new wallet in QLDB
+## Wallet Management
 
-Create the below AWS iam policy `iam:policy:allowInsertNewWallet` and attach it to the user `createNewWallet_API_GatewayInfo` that will be used to create the new wallet in QLDB.
+Wallet management should be handled by only an API Gateway function that is essentially an express HTTP service for CRUD operations on wallet & transaction. Anything involving Quantum Ledger Database (QLDB) should be handled by this API Gateway function.
 
-`iam:user:createNewWallet_API_GatewayInfo`
-- attached policies: [`iam:policy:allowInsertNewWallet`]
+Create the below AWS iam user `iam:user:wallet-api-gateway` and attach to it permissions for managing QLDB & DynamoDB. Then attach it to your API Gateway function.
 
-`iam:policy:allowInsertNewWallet`
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": [
-                "qldb:PartiQLInsert"
-            ],
-            "Resource": "*"
-        }
-    ]
-}
-```
+`iam:user:wallet-api-gateway`
+- attached policies: [
+  `iam:policy:AmazonQLDBFullAccess`,
+  `iam:policy:AmazonDynamoDBFullAccess`
+  ]
