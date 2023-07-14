@@ -14,6 +14,15 @@ Globals:
   Api:
     TracingEnabled: true
 Resources:
+  MyAuthApi:
+      Type: AWS::Serverless::Api
+      Properties:
+        StageName: Stage
+        Auth:
+          DefaultAuthorizer: WalletAdminAuthorizer
+          Authorizers:
+            WalletAdminAuthorizer:
+              FunctionArn: !GetAtt WalletAuthValidatorFunction.Arn
   HelloWorldFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
@@ -28,7 +37,70 @@ Resources:
           Properties:
             Path: /hello
             Method: post
+            RestApiId: !Ref MyPublicApi
     Metadata: # Manage esbuild properties
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2020
+        Sourcemap: true
+        EntryPoints:
+        - app.ts
+  WalletAuthValidatorFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: wallet-gateway/
+      Handler: app.walletAuthValidator
+      Runtime: nodejs18.x
+      Architectures:
+      - x86_64
+    Metadata: # Manage esbuild properties
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2020
+        Sourcemap: true
+        EntryPoints:
+        - app.ts
+  CreateWalletFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: wallet-gateway/  # Your code folder for create wallet
+      Handler: app.createWallet  # Your handler function for create wallet
+      Runtime: nodejs18.x
+      Architectures:
+      - x86_64
+      Events:
+        CreateWallet:
+          Type: Api
+          Properties:
+            Path: /wallet
+            Method: post
+            RestApiId: !Ref MyAuthApi
+    Metadata: 
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2020
+        Sourcemap: true
+        EntryPoints:
+        - app.ts
+  GetWalletFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: wallet-gateway/  # Your code folder for create wallet
+      Handler: app.getWallet  # Your handler function for create wallet
+      Runtime: nodejs18.x
+      Architectures:
+      - x86_64
+      Events:
+        GetWallet:
+          Type: Api
+          Properties:
+            Path: /wallet
+            Method: get
+            RestApiId: !Ref MyAuthApi
+    Metadata: 
       BuildMethod: esbuild
       BuildProperties:
         Minify: true
@@ -56,7 +128,7 @@ Outputs:
   # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
   HelloWorldApi:
     Description: API Gateway endpoint URL for Prod stage for Hello World function
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
+    Value: !Sub "https://${MyPublicApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
   HelloWorldFunction:
     Description: Hello World Lambda Function ARN
     Value: !GetAtt HelloWorldFunction.Arn
