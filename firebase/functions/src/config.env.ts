@@ -18,7 +18,7 @@ const devConfig: ConfigEnv = {
       versionId: "latest",
     },
     CREATE_WALLET_XCLOUD_AWS: {
-      secretId: "xcloud-create-wallet-gcp-to-aws-api-gateway",
+      secretId: "xcloud-wallet-gateway-gcp-to-aws",
       versionId: "latest",
     },
   },
@@ -59,7 +59,7 @@ const stagingConfig: ConfigEnv = {
       versionId: "latest",
     },
     CREATE_WALLET_XCLOUD_AWS: {
-      secretId: "xcloud-create-wallet-gcp-to-aws-api-gateway",
+      secretId: "xcloud-wallet-gateway-gcp-to-aws",
       versionId: "latest",
     },
   },
@@ -100,7 +100,7 @@ const prodConfig: ConfigEnv = {
       versionId: "latest",
     },
     CREATE_WALLET_XCLOUD_AWS: {
-      secretId: "xcloud-create-wallet-gcp-to-aws-api-gateway",
+      secretId: "xcloud-wallet-gateway-gcp-to-aws",
       versionId: "latest",
     },
   },
