@@ -80,6 +80,9 @@ $ sam deploy --guided --profile local-developer-kangze
 
 Note that this only deploys your resources. The actual API gateway is not yet deployed and you can do that manually in the AWS console `API Gateway`. You must pick a stage to deploy to (prod, stagin, dev, etc.)
 
+You'll need to also need to set `WALLET_GATEWAY_BASE64_KEY` env variable in the aws lambda console. Only for the `auth-validator` lambda function.
+
+
 ## Invokation
 
 After you deploy your API Gateway, you can invoke it with the below following command. Note how the format `https://${api-id}.execute-api.${region}.amazonaws.com/${stage}/${path}` is used.
@@ -96,7 +99,7 @@ fetch({
   },
   headers: {
     "Content-Type": "application/json",
-    "x-api-key": "your-api-key"
+    "Authorization": "your-api-key"
   }
 })
 ```

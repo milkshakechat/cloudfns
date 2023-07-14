@@ -33,3 +33,22 @@ WALLET_GATEWAY_BASE64_KEY=ayJ0eXBlIjoi....291bnQuY29tIn0=
 ```
 
 Then `secrets.ts:accessSecretVersion` will be able to read from the secret manager. Those secrets are listed here:
+
+Also, make sure you have the following IAM policy attached to your user `rn:aws:iam::______:user/dairyfarm-backend` which is the assumed service account user that the `wallet-gateway` uses (sorry for the confusing name, its cuz dairyfarm server accesses the same token as wallet-gateway)
+
+`iam policy for wallet-gateway (will assume dairyfarm-backend iam user)`
+```
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "secretsmanager:GetSecretValue",
+                "secretsmanager:DescribeSecret"
+            ],
+            "Resource": "arn:aws:secretsmanager:ap-northeast-1:484953066935:secret:xcloud-wallet-gateway-gcp-to-aws/dev-a2fIvk"
+        }
+    ]
+}
+```

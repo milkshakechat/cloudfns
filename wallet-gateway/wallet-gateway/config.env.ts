@@ -13,7 +13,6 @@ const devConfig: ConfigEnv = {
     SECRETS: {
         WALLET_GATEWAY_XCLOUD_GCP: {
             SecretId: 'xcloud-wallet-gateway-gcp-to-aws/dev',
-            VersionId: 'AWSCURRENT',
         },
     },
 };
@@ -33,7 +32,6 @@ const stagingConfig: ConfigEnv = {
     SECRETS: {
         WALLET_GATEWAY_XCLOUD_GCP: {
             SecretId: 'xcloud-wallet-gateway-gcp-to-aws/dev',
-            VersionId: 'AWSCURRENT',
         },
     },
 };
@@ -53,14 +51,13 @@ const prodConfig: ConfigEnv = {
     SECRETS: {
         WALLET_GATEWAY_XCLOUD_GCP: {
             SecretId: 'xcloud-wallet-gateway-gcp-to-aws/dev',
-            VersionId: 'AWSCURRENT',
         },
     },
 };
 
-interface SecretConfig {
+export interface SecretConfigAWS {
     SecretId: string; // required
-    VersionId: string;
+    VersionId?: string;
 }
 interface ConfigEnv {
     WALLET_GATEWAY: {
@@ -75,7 +72,7 @@ interface ConfigEnv {
         };
     };
     SECRETS: {
-        WALLET_GATEWAY_XCLOUD_GCP: SecretConfig;
+        WALLET_GATEWAY_XCLOUD_GCP: SecretConfigAWS;
     };
 }
 

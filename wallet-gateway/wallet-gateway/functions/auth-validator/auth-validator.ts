@@ -1,4 +1,4 @@
-import { APIGatewayRequestAuthorizerEventV2, APIGatewaySimpleAuthorizerWithContextResult } from 'aws-lambda';
+import { AuthResponse, CustomAuthorizerEvent, CustomAuthorizerResult, PolicyDocument, Statement } from 'aws-lambda';
 import { getCreateWalletXCloudAWSSecret } from '../../utils/secrets';
 
 /**
@@ -11,29 +11,40 @@ import { getCreateWalletXCloudAWSSecret } from '../../utils/secrets';
  *
  */
 
-export const walletAuthValidator = async (
-    event: APIGatewayRequestAuthorizerEventV2,
-): Promise<APIGatewaySimpleAuthorizerWithContextResult<any>> => {
-    console.log('------ event ------');
-    console.log(event);
-    console.log('------ event ------');
-    const response = {
-        isAuthorized: false,
-        context: {},
-    };
-    if (!event.headers || !event.headers['Authorization']) {
-        return response;
+export const walletAuthValidator = async (event: CustomAuthorizerEvent): Promise<CustomAuthorizerResult> => {
+    if (!event.authorizationToken) {
+        return generateAuthResponse('user', 'Deny', event.methodArn);
     }
 
-    const senderToken = event.headers['Authorization'] || '';
+    const senderToken = event.authorizationToken || '';
     const xcloudSecret = await getCreateWalletXCloudAWSSecret();
-
     if (senderToken === xcloudSecret) {
-        return {
-            isAuthorized: true,
-            context: {},
-        };
+        const iamPolicy = generateAuthResponse('user', 'Allow', event.methodArn);
+
+        return iamPolicy;
     } else {
-        return response;
+        return generateAuthResponse('user', 'Deny', event.methodArn);
     }
 };
+
+async function generatePolicyDocument(effect: string, resource: string): Promise<PolicyDocument> {
+    const statement: Statement = {
+        Action: 'execute-api:Invoke',
+        Effect: effect,
+        Resource: resource,
+    };
+    const policyDocument: PolicyDocument = {
+        Version: '2012-10-17',
+        Statement: [statement],
+    };
+    return policyDocument;
+}
+
+async function generateAuthResponse(principalId: string, effect: string, resource: string): Promise<AuthResponse> {
+    const policyDocument = await generatePolicyDocument(effect, resource);
+    const response: AuthResponse = {
+        principalId: principalId,
+        policyDocument: policyDocument,
+    };
+    return response;
+}

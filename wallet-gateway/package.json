@@ -8,5 +8,8 @@
     "deploy:staging": "sam build --profile local-developer-kangze && sam deploy --guided --profile local-developer-kangze"
   },
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.119"
+  }
 }

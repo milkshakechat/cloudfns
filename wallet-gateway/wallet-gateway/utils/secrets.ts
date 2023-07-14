@@ -1,15 +1,16 @@
 import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
-import config from '../config.env';
+import config, { SecretConfigAWS } from '../config.env';
 import * as dotenv from 'dotenv';
-import { APIGatewayProxyEvent } from 'aws-lambda';
 dotenv.config();
 
-async function accessSecretVersion({ SecretId, VersionId }: { SecretId: string; VersionId: string }): Promise<string> {
+async function accessSecretVersion({ SecretId, VersionId }: { SecretId: string; VersionId?: string }): Promise<string> {
     // path to repo working directory
     const base64KeyFile = Buffer.from(process.env.WALLET_GATEWAY_BASE64_KEY || '', 'base64').toString('utf-8');
+    console.log(`base64KeyFile`, base64KeyFile);
     const credentials = JSON.parse(base64KeyFile);
-    // Create a GoogleAuth instance with the credentials
-
+    console.log(`credentials`, credentials);
+    console.log(`init client...`);
+    // Create a AWS Secret Manager instance with the credentials
     const client = new SecretsManagerClient({
         region: config.WALLET_GATEWAY.region,
         credentials: {
@@ -17,24 +18,42 @@ async function accessSecretVersion({ SecretId, VersionId }: { SecretId: string; 
             secretAccessKey: credentials.secretKey,
         },
     });
-    const input = {
+    console.log(`init client!`);
+    const input: SecretConfigAWS = {
         SecretId: SecretId,
-        VersionId: VersionId,
     };
-    const command = new GetSecretValueCommand(input);
-    const secretValue = await client.send(command);
-
-    if (!secretValue || !secretValue.SecretString) {
-        throw Error('No secret value found');
+    if (VersionId) {
+        input.VersionId = VersionId;
     }
-    return secretValue.SecretString;
+    console.log(`Getting secret value...`);
+    const command = new GetSecretValueCommand(input);
+    console.log(`send secret command...`);
+    try {
+        const secretValue = await client.send(command);
+        console.log(`secretValue`, secretValue);
+        if (!secretValue || !secretValue.SecretString) {
+            console.log(`couldnt got secret value!`);
+            throw Error('No secret value found');
+        }
+        console.log(`successfully got secret value!`);
+        return secretValue.SecretString;
+    } catch (error) {
+        console.error(`An error occurred: ${error}`);
+        throw error;
+    }
 }
 
 export const getCreateWalletXCloudAWSSecret = async () => {
+    console.log(`getting getCreateWalletXCloudAWSSecret...`);
     const xcloudSecret = await accessSecretVersion({
         SecretId: config.SECRETS.WALLET_GATEWAY_XCLOUD_GCP.SecretId,
-        VersionId: config.SECRETS.WALLET_GATEWAY_XCLOUD_GCP.VersionId,
     });
     console.log(`xcloudSecret: ${xcloudSecret}`);
-    return xcloudSecret;
+    console.log(`typeof xcloudSecret = ${typeof xcloudSecret}`);
+    const { secret } = JSON.parse(xcloudSecret) as { secret: string };
+    console.log(`secret: ${secret}`);
+    if (!secret) {
+        throw Error('No secret value found');
+    }
+    return secret;
 };
