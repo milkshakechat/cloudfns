@@ -15,6 +15,14 @@ const devConfig: ConfigEnv = {
             SecretId: 'xcloud-wallet-gateway-gcp-to-aws/dev',
         },
     },
+    LEDGER: {
+        region: 'ap-northeast-1',
+        name: 'inapp-wallet-prod',
+        tables: {
+            WALLET: 'wallets',
+            TRANSACTION: 'transactions',
+        },
+    },
 };
 
 const stagingConfig: ConfigEnv = {
@@ -34,6 +42,14 @@ const stagingConfig: ConfigEnv = {
             SecretId: 'xcloud-wallet-gateway-gcp-to-aws/dev',
         },
     },
+    LEDGER: {
+        region: 'ap-northeast-1',
+        name: 'inapp-wallet-prod',
+        tables: {
+            WALLET: 'wallets',
+            TRANSACTION: 'transactions',
+        },
+    },
 };
 
 const prodConfig: ConfigEnv = {
@@ -51,6 +67,14 @@ const prodConfig: ConfigEnv = {
     SECRETS: {
         WALLET_GATEWAY_XCLOUD_GCP: {
             SecretId: 'xcloud-wallet-gateway-gcp-to-aws/dev',
+        },
+    },
+    LEDGER: {
+        region: 'ap-northeast-1',
+        name: 'inapp-wallet-prod',
+        tables: {
+            WALLET: 'wallets',
+            TRANSACTION: 'transactions',
         },
     },
 };
@@ -74,7 +98,20 @@ interface ConfigEnv {
     SECRETS: {
         WALLET_GATEWAY_XCLOUD_GCP: SecretConfigAWS;
     };
+    LEDGER: {
+        region: string;
+        name: string;
+        tables: {
+            [key in QuantumLedgerTables]: QuantumLedgerTable;
+        };
+    };
 }
+
+export enum QuantumLedgerTables {
+    WALLET = 'WALLET',
+    TRANSACTION = 'TRANSACTION',
+}
+export type QuantumLedgerTable = string;
 
 export default (() => {
     // console.log(`process.env.NODE_ENV: ${process.env.NODE_ENV}`);

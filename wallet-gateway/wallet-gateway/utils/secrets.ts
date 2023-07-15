@@ -57,3 +57,10 @@ export const getCreateWalletXCloudAWSSecret = async () => {
     }
     return secret;
 };
+
+export const accessLocalAWSKeyFile = async () => {
+    // path to repo working directory
+    const base64KeyFile = Buffer.from(process.env.AWS_KEYFILE_BASE64 || '', 'base64').toString('utf-8');
+    const credentials = JSON.parse(base64KeyFile);
+    return credentials as { accessKey: string; secretKey: string };
+};

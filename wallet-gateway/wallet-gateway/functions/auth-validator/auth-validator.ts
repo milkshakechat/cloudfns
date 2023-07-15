@@ -12,15 +12,20 @@ import { getCreateWalletXCloudAWSSecret } from '../../utils/secrets';
  */
 
 export const walletAuthValidator = async (event: CustomAuthorizerEvent): Promise<CustomAuthorizerResult> => {
+    console.log('walletAuthValidator');
+
+    console.log('-------- event -------');
+    console.log(event);
     if (!event.authorizationToken) {
         return generateAuthResponse('user', 'Deny', event.methodArn);
     }
 
     const senderToken = event.authorizationToken || '';
     const xcloudSecret = await getCreateWalletXCloudAWSSecret();
+
     if (senderToken === xcloudSecret) {
         const iamPolicy = generateAuthResponse('user', 'Allow', event.methodArn);
-
+        console.log(`iamPolicy: ${JSON.stringify(iamPolicy)}`);
         return iamPolicy;
     } else {
         return generateAuthResponse('user', 'Deny', event.methodArn);

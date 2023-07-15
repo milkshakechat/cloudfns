@@ -37,8 +37,15 @@ const devConfig: ConfigEnv = {
       location: "asia-northeast1",
     },
   },
-  CREATE_WALLET: {
-    url: "https://xcloud-api-gateway.execute-api.ap-northeast-1.amazonaws.com/dev/create-wallet",
+  WALLET_GATEWAY: {
+    createWallet: {
+      url: "https://ukywzxz9dc.execute-api.ap-northeast-1.amazonaws.com/Staging/wallet",
+    },
+  },
+  STRIPE: {
+    MAIN_BILLING_CYCLE_PRODUCT_PRICE: {
+      id: "price_1NTvKSBbKljWimkInc1hgIdw",
+    },
   },
 };
 const stagingConfig: ConfigEnv = {
@@ -78,8 +85,15 @@ const stagingConfig: ConfigEnv = {
       location: "asia-northeast1",
     },
   },
-  CREATE_WALLET: {
-    url: "https://xcloud-api-gateway.execute-api.ap-northeast-1.amazonaws.com/dev/create-wallet",
+  WALLET_GATEWAY: {
+    createWallet: {
+      url: "https://ukywzxz9dc.execute-api.ap-northeast-1.amazonaws.com/Staging/wallet",
+    },
+  },
+  STRIPE: {
+    MAIN_BILLING_CYCLE_PRODUCT_PRICE: {
+      id: "price_1NTvKSBbKljWimkInc1hgIdw",
+    },
   },
 };
 const prodConfig: ConfigEnv = {
@@ -119,8 +133,15 @@ const prodConfig: ConfigEnv = {
       location: "asia-northeast1",
     },
   },
-  CREATE_WALLET: {
-    url: "https://xcloud-api-gateway.execute-api.ap-northeast-1.amazonaws.com/dev/create-wallet",
+  WALLET_GATEWAY: {
+    createWallet: {
+      url: "https://ukywzxz9dc.execute-api.ap-northeast-1.amazonaws.com/Staging/wallet",
+    },
+  },
+  STRIPE: {
+    MAIN_BILLING_CYCLE_PRODUCT_PRICE: {
+      id: "price_1NTvKSBbKljWimkInc1hgIdw",
+    },
   },
 };
 
@@ -150,8 +171,15 @@ interface ConfigEnv {
   VIDEO_TRANSCODER: {
     bucket: BucketDef;
   };
-  CREATE_WALLET: {
-    url: string;
+  WALLET_GATEWAY: {
+    createWallet: {
+      url: string;
+    };
+  };
+  STRIPE: {
+    MAIN_BILLING_CYCLE_PRODUCT_PRICE: {
+      id: string;
+    };
   };
 }
 
