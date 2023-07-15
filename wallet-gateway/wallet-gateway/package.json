@@ -13,15 +13,23 @@
     "test": "npm run compile && npm run unit"
   },
   "dependencies": {
+    "@aws-sdk/client-qldb": "^3.370.0",
+    "@aws-sdk/client-qldb-session": "^3.370.0",
     "@aws-sdk/client-secrets-manager": "^3.370.0",
-    "@milkshakechat/helpers": "^1.0.122",
+    "@aws-sdk/node-http-handler": "^3.370.0",
+    "@aws-sdk/smithy-client": "^3.370.0",
+    "@milkshakechat/helpers": "^1.0.123",
+    "amazon-qldb-driver-nodejs": "^3.0.1",
     "dotenv": "^16.3.1",
-    "esbuild": "^0.14.14"
+    "esbuild": "^0.14.14",
+    "ion-js": "^4.3.0",
+    "uuid": "^9.0.0"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.92",
     "@types/jest": "^29.2.0",
     "@types/node": "^18.11.4",
+    "@types/uuid": "^9.0.2",
     "@typescript-eslint/eslint-plugin": "^5.10.2",
     "@typescript-eslint/parser": "^5.10.2",
     "eslint": "^8.8.0",

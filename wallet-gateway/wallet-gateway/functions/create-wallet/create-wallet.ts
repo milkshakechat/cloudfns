@@ -1,5 +1,7 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { getCreateWalletXCloudAWSSecret } from '../../utils/secrets';
+import { CreateWalletXCloudRequestBody, UserID, WalletType } from '@milkshakechat/helpers';
+import { createWallet as createWalletQLDB, initQuantumLedger_Drivers } from '../../services/ledger';
 
 /**
  *
@@ -11,11 +13,12 @@ import { getCreateWalletXCloudAWSSecret } from '../../utils/secrets';
  *
  */
 
-interface RequestBodyParamsType {
-    title: string;
-    note: string;
-}
 export const createWallet = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+    console.log('createWallet');
+    console.log('-------- event -------');
+    console.log(event);
+    console.log('-------- event -------');
+    await initQuantumLedger_Drivers();
     if (!event.body) {
         return {
             statusCode: 400,
@@ -24,20 +27,42 @@ export const createWallet = async (event: APIGatewayProxyEvent): Promise<APIGate
             }),
         };
     }
+    console.log('createWallet...');
     try {
-        const body = JSON.parse(event.body) as RequestBodyParamsType;
-        return {
+        const body = JSON.parse(event.body) as CreateWalletXCloudRequestBody;
+        console.log('body', body);
+        const { userID, userRelationshipHash, title, note, type } = body;
+        console.log('userID', userID);
+        const tradingWallet = await createWalletQLDB({
+            userRelationshipHash,
+            userID,
+            title,
+            note,
+            type,
+        });
+        console.log(`tradingWallet`, tradingWallet);
+        if (!tradingWallet) {
+            return {
+                statusCode: 500,
+                body: JSON.stringify({
+                    message: `Could not create a trading wallet for user ${userID}`,
+                }),
+            };
+        }
+        const resp = {
             statusCode: 200,
             body: JSON.stringify({
-                message: `Creating wallet with title=${body.title} and note=${body.note}`,
+                message: `Successfully created wallet=${tradingWallet.id} for user=${userID}`,
+                wallet: tradingWallet,
             }),
         };
+        return resp;
     } catch (err) {
         console.log(err);
         return {
             statusCode: 500,
             body: JSON.stringify({
-                message: 'some error happened',
+                message: 'An error occurred while creating the wallet',
             }),
         };
     }

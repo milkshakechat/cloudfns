@@ -3,11 +3,12 @@ import Stripe from "stripe";
 import {
   FirestoreCollection,
   StripeCustomerID,
+  StripeSubscriptionID,
   UserID,
-  WalletID,
-  Wallet_Firestore,
+  User_Firestore,
 } from "@milkshakechat/helpers";
 import { updateFirestoreDoc } from "./firestore";
+import config from "../config.env";
 
 let stripe: Stripe;
 
@@ -20,10 +21,8 @@ export const initStripe = async () => {
 
 export const createCustomerStripe = async ({
   milkshakeUserID,
-  walletID,
 }: {
   milkshakeUserID: UserID;
-  walletID: WalletID;
 }) => {
   console.log("createCustomerStripe...");
   const customer = await stripe.customers.create({
@@ -32,12 +31,22 @@ export const createCustomerStripe = async ({
     },
   });
   console.log("customer", customer);
-  const updatedWallet = await updateFirestoreDoc<WalletID, Wallet_Firestore>({
-    id: walletID,
-    payload: {
-      stripeCustomerID: customer.id as StripeCustomerID,
-    },
-    collection: FirestoreCollection.WALLETS,
+  console.log("Subscribe to the zero dollar plan...");
+  const sub = await stripe.subscriptions.create({
+    customer: customer.id, // Replace with your customer id
+    items: [{ price: config.STRIPE.MAIN_BILLING_CYCLE_PRODUCT_PRICE.id }],
   });
-  return updatedWallet;
+  console.log("sub", sub);
+  const updatedUser = await updateFirestoreDoc<UserID, User_Firestore>({
+    id: milkshakeUserID,
+    payload: {
+      stripeMetadata: {
+        stripeCustomerID: customer.id as StripeCustomerID,
+        stripeCustomerSubscriptionID: sub.id as StripeSubscriptionID,
+        hasMerchantPrivilege: false,
+      },
+    },
+    collection: FirestoreCollection.USERS,
+  });
+  return updatedUser;
 };

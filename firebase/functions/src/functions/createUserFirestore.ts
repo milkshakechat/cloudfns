@@ -8,7 +8,6 @@ import {
   User_Firestore,
   Username,
   WalletID,
-  Wallet_Firestore,
   defaultThemeColorHex,
   genderEnum,
   localeEnum,
@@ -16,11 +15,9 @@ import {
 } from "@milkshakechat/helpers";
 import { generateAvailablePlaceholderNames } from "../utils/username";
 import { createFirestoreTimestamp } from "../services/firestore";
-import { v4 as uuidv4 } from "uuid";
 import { sleep } from "../utils/utils";
 import { createCustomerStripe } from "../services/stripe";
-import { getCreateWalletXCloudAWSSecret } from "../utils/secrets";
-import config from "../config.env";
+import { createNewUserWallet } from "../services/ledger";
 
 export const createuserfirestore = functions.auth
   .user()
@@ -30,7 +27,9 @@ export const createuserfirestore = functions.auth
       const { username, displayName } =
         await generateAvailablePlaceholderNames();
       const now = createFirestoreTimestamp();
-      const walletID = uuidv4();
+
+      await createNewUserWallet({ userID: user.uid as UserID });
+      console.log("Got wallet");
       const newUser: User_Firestore = {
         id: user.uid as UserID,
         username: username as Username,
@@ -50,37 +49,11 @@ export const createuserfirestore = functions.auth
         gender: genderEnum.other,
         interestedIn: [],
         usernameLastUpdated: now,
-        mainWalletID: walletID as WalletID,
+        mainWalletID: "walletID" as WalletID,
       };
 
-      // create new wallet
-      // const xcloudSecret = await getCreateWalletXCloudAWSSecret();
-      // const xcloudResponse = await fetch(config.CREATE_WALLET.url, {
-      //   method: "POST",
-      //   headers: {
-      //     "Content-Type": "application/json",
-      //     "x-api-key": xcloudSecret,
-      //   },
-      //   body: JSON.stringify({
-      //     walletID: walletID,
-      //   }),
-      // });
-
-      // const newWallet: Wallet_Firestore = {
-      //   id: walletID as WalletID,
-      //   ownerID: user.uid as UserID,
-      //   hasMerchantPrivilege: false,
-      //   title: `Main Wallet for User ${user.uid}`,
-      //   createdAt: now,
-      //   note: "Created automatically upon user creation.",
-      //   cookieBalanceSnapshot: 0,
-      //   lastSnapshotTime: now,
-      // };
       const db = admin.firestore();
-      await Promise.all([
-        db.collection(FirestoreCollection.USERS).doc(user.uid).set(newUser),
-        // db.collection(FirestoreCollection.WALLETS).doc(user.uid).set(newWallet),
-      ]);
+      await db.collection(FirestoreCollection.USERS).doc(user.uid).set(newUser);
       logger.log("User document written with ID: ", user.uid);
       // logger.log("Wallet document written with ID: ", walletID);
 
@@ -89,7 +62,6 @@ export const createuserfirestore = functions.auth
       // create stripe customer
       await createCustomerStripe({
         milkshakeUserID: user.uid as UserID,
-        walletID: walletID as WalletID,
       });
     } catch (e) {
       console.error("Error adding document: ", e);

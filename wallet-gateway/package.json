@@ -11,5 +11,10 @@
   "license": "ISC",
   "devDependencies": {
     "@types/aws-lambda": "^8.10.119"
+  },
+  "dependencies": {
+    "@aws-sdk/smithy-client": "^3.370.0",
+    "amazon-qldb-driver-nodejs": "^3.0.1",
+    "ion-js": "^4.3.0"
   }
 }

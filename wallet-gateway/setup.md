@@ -76,6 +76,11 @@ When deploying `sam deploy`, make sure you do not disable rollback!
 ```sh
 $ sam build --profile local-developer-kangze
 $ sam deploy --guided --profile local-developer-kangze
+
+# or
+
+$ cd cloudfns/wallet-gateway/
+$ npm run deploy:staging
 ```
 
 Note that this only deploys your resources. The actual API gateway is not yet deployed and you can do that manually in the AWS console `API Gateway`. You must pick a stage to deploy to (prod, stagin, dev, etc.)
