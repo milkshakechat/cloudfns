@@ -17,7 +17,7 @@ const devConfig: ConfigEnv = {
     },
     LEDGER: {
         region: 'ap-northeast-1',
-        name: 'inapp-wallet-prod',
+        name: 'inapp-wallet-dev',
         tables: {
             WALLET: 'wallets',
             TRANSACTION: 'transactions',
@@ -44,7 +44,7 @@ const stagingConfig: ConfigEnv = {
     },
     LEDGER: {
         region: 'ap-northeast-1',
-        name: 'inapp-wallet-prod',
+        name: 'inapp-wallet-dev',
         tables: {
             WALLET: 'wallets',
             TRANSACTION: 'transactions',
@@ -71,7 +71,7 @@ const prodConfig: ConfigEnv = {
     },
     LEDGER: {
         region: 'ap-northeast-1',
-        name: 'inapp-wallet-prod',
+        name: 'inapp-wallet-dev',
         tables: {
             WALLET: 'wallets',
             TRANSACTION: 'transactions',

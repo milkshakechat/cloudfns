@@ -1,7 +1,7 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { getCreateWalletXCloudAWSSecret } from '../../utils/secrets';
 import { CreateWalletXCloudRequestBody, UserID, WalletType } from '@milkshakechat/helpers';
-import { createWallet as createWalletQLDB } from '../../services/ledger';
+import { createWallet as createWalletQLDB, initQuantumLedger_Drivers } from '../../services/ledger';
 
 /**
  *
@@ -18,6 +18,7 @@ export const createWallet = async (event: APIGatewayProxyEvent): Promise<APIGate
     console.log('-------- event -------');
     console.log(event);
     console.log('-------- event -------');
+    await initQuantumLedger_Drivers();
     if (!event.body) {
         return {
             statusCode: 400,
@@ -39,6 +40,7 @@ export const createWallet = async (event: APIGatewayProxyEvent): Promise<APIGate
             note,
             type,
         });
+        console.log(`tradingWallet`, tradingWallet);
         if (!tradingWallet) {
             return {
                 statusCode: 500,
@@ -50,7 +52,7 @@ export const createWallet = async (event: APIGatewayProxyEvent): Promise<APIGate
         const resp = {
             statusCode: 200,
             body: JSON.stringify({
-                message: `Successfully created wallet=${tradingWallet} for user=${userID}`,
+                message: `Successfully created wallet=${tradingWallet.id} for user=${userID}`,
                 wallet: tradingWallet,
             }),
         };

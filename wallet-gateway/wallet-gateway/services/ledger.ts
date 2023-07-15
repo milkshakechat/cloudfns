@@ -17,6 +17,7 @@ import { sleep } from '../utils/utils';
  */
 export let qldbDriver: QldbDriver;
 export const initQuantumLedger_Drivers = async () => {
+    console.log('initQuantumLedger_Drivers...');
     const maxConcurrentTransactions = 10;
     const retryLimit = 4;
     //Reuse connections with keepAlive
@@ -25,7 +26,9 @@ export const initQuantumLedger_Drivers = async () => {
             maxSockets: maxConcurrentTransactions,
         }),
     };
+    console.log('accessLocalAWSKeyFile...');
     const credentials = await accessLocalAWSKeyFile();
+    console.log('credentials', credentials);
     const serviceConfigurationOptions: QLDBSessionClientConfig = {
         region: config.LEDGER.region,
         credentials: {
@@ -33,8 +36,10 @@ export const initQuantumLedger_Drivers = async () => {
             secretAccessKey: credentials.secretKey,
         },
     };
+    console.log('serviceConfigurationOptions', serviceConfigurationOptions);
     const retryConfig: RetryConfig = new RetryConfig(retryLimit);
-
+    console.log('retryConfig', retryConfig);
+    console.log('new QldbDriver...');
     // init the ledger
     qldbDriver = new QldbDriver(
         config.LEDGER.name,
@@ -43,6 +48,7 @@ export const initQuantumLedger_Drivers = async () => {
         maxConcurrentTransactions,
         retryConfig,
     );
+    console.log('qldbDriver', qldbDriver);
     qldbDriver.getTableNames().then(function (tableNames: string[]) {
         console.log(tableNames);
     });
@@ -61,40 +67,70 @@ export const createWallet = async ({
     title: string;
     note?: string;
     type: WalletType;
-}) => {
-    console.log('createWalletQLDB...');
-    return await qldbDriver.executeLambda(async (txn: TransactionExecutor) => {
-        // Check if doc with match condition exists
-        // This is critical to make this transaction idempotent
-        const results = (
-            await txn.execute('SELECT * FROM Wallets WHERE userRelationshipHash = ?', userRelationshipHash)
-        ).getResultList();
-        // Insert the document after ensuring it doesn't already exist
-        if (results.length == 0) {
-            const id = uuidv4();
-            const now = new Date().toISOString();
-            const doc: Record<string, any> = {
-                id: id,
-                userRelationshipHash: userRelationshipHash,
-                ownerID: userID,
-                title,
-                note,
-                type,
-                balance: 0,
-                isLocked: false,
-                createdAt: now,
-            };
-            // Create a sample Ion doc
-            const ionDoc = load(dumpBinary(doc));
-            if (ionDoc !== null) {
-                const result = await txn.execute('INSERT INTO Wallets ?', ionDoc);
-                const insertedDocument = result.getResultList()[0];
-                const wallet = domValueWalletToTyped(insertedDocument);
-                console.log(`Successfully inserted document into table: ${JSON.stringify(wallet)}`);
-                return wallet;
+}): Promise<Wallet_Quantum> => {
+    const p: Promise<Wallet_Quantum> = new Promise(async (res, rej) => {
+        console.log('createWalletQLDB...');
+        try {
+            const wallet = await qldbDriver.executeLambda(async (txn: TransactionExecutor) => {
+                console.log('txn.executeLambda...');
+                // Check if doc with match condition exists
+                // This is critical to make this transaction idempotent
+                const results = (
+                    await txn.execute('SELECT * FROM Wallets WHERE userRelationshipHash = ?', userRelationshipHash)
+                ).getResultList();
+                console.log(`results: ${JSON.stringify(results)}`);
+                console.log(`results.length: ${results.length}`);
+                // Insert the document after ensuring it doesn't already exist
+                if (results.length == 0) {
+                    const id = uuidv4();
+                    console.log(`id: ${id}`);
+                    const now = new Date().toISOString();
+                    const doc: Record<string, any> = {
+                        id: id,
+                        userRelationshipHash: userRelationshipHash,
+                        ownerID: userID,
+                        title,
+                        note,
+                        type,
+                        balance: 0,
+                        isLocked: false,
+                        createdAt: now,
+                    };
+                    console.log(`doc: ${JSON.stringify(doc)}`);
+                    // Create a sample Ion doc
+                    const ionDoc = load(dumpBinary(doc));
+                    console.log(`ionDoc: ${JSON.stringify(ionDoc)}`);
+                    if (ionDoc !== null) {
+                        const result = await txn.execute('INSERT INTO Wallets ?', ionDoc);
+                        const insertedDocument = result.getResultList()[0];
+                        console.log(`insertedDocument: ${JSON.stringify(insertedDocument)}`);
+                        const wallet = domValueWalletToTyped(insertedDocument);
+                        console.log(`Successfully inserted document into table: ${JSON.stringify(wallet)}`);
+                        return wallet;
+                    } else {
+                        throw Error('ionDoc is null');
+                    }
+                } else {
+                    console.log(
+                        `Wallet already exists for userID=${userID} or userRelationshipHash=${userRelationshipHash}`,
+                    );
+                    const preexistingWallet = domValueWalletToTyped(results[0]);
+                    console.log(`preexistingWallet: ${JSON.stringify(preexistingWallet)}`);
+                    return preexistingWallet;
+                }
+            });
+            if (wallet) {
+                res(wallet);
+            } else {
+                console.log('wallet', wallet);
+                rej('wallet is null');
             }
+        } catch (e) {
+            console.log('createWalletQLDB error', e);
+            rej(e);
         }
     });
+    return p;
 };
 
 export const getWallet_QuantumLedger = async ({
