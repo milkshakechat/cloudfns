@@ -16,7 +16,7 @@ import {
 import { generateAvailablePlaceholderNames } from "../utils/username";
 import { createFirestoreTimestamp } from "../services/firestore";
 import { sleep } from "../utils/utils";
-import { createCustomerStripe } from "../services/stripe";
+import { createCustomerStripe, initStripe } from "../services/stripe";
 import { createNewUserWallet } from "../services/ledger";
 
 export const createuserfirestore = functions.auth
@@ -28,8 +28,13 @@ export const createuserfirestore = functions.auth
         await generateAvailablePlaceholderNames();
       const now = createFirestoreTimestamp();
 
-      await createNewUserWallet({ userID: user.uid as UserID });
+      const _wallet = await createNewUserWallet({ userID: user.uid as UserID });
       console.log("Got wallet");
+      console.log(Object.keys(_wallet));
+      console.log("---- wallet body");
+      console.log(_wallet.data);
+      console.log("---------");
+      const wallet = _wallet.data.wallet;
       const newUser: User_Firestore = {
         id: user.uid as UserID,
         username: username as Username,
@@ -49,16 +54,16 @@ export const createuserfirestore = functions.auth
         gender: genderEnum.other,
         interestedIn: [],
         usernameLastUpdated: now,
-        mainWalletID: "walletID" as WalletID,
+        mainWalletID: wallet.id as WalletID,
       };
 
       const db = admin.firestore();
       await db.collection(FirestoreCollection.USERS).doc(user.uid).set(newUser);
       logger.log("User document written with ID: ", user.uid);
       // logger.log("Wallet document written with ID: ", walletID);
-
-      await sleep(5000); // sleep 5 seconds to allow firestore to write
-
+      await initStripe();
+      await sleep(1000); // sleep 5 seconds to allow firestore to write
+      console.log("Creating stripe customer...");
       // create stripe customer
       await createCustomerStripe({
         milkshakeUserID: user.uid as UserID,

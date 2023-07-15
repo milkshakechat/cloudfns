@@ -10,6 +10,13 @@ import config from "../config.env";
 
 export const createNewUserWallet = async ({ userID }: { userID: UserID }) => {
   console.log("createNewUserWallet...");
+
+  const xcloudSecret = await getCreateWalletXCloudAWSSecret();
+  // console.log("xcloudSecret", xcloudSecret);
+  // console.log(
+  //   "config.WALLET_GATEWAY.createWallet.url",
+  //   config.WALLET_GATEWAY.createWallet.url
+  // );
   const newWallet: CreateWalletXCloudRequestBody = {
     title: `Main Wallet for User ${userID}`,
     userRelationshipHash: getMainUserTradingWallet(userID),
@@ -18,22 +25,17 @@ export const createNewUserWallet = async ({ userID }: { userID: UserID }) => {
     type: WalletType.TRADING,
   };
   console.log("newWallet", newWallet);
-  const xcloudSecret = await getCreateWalletXCloudAWSSecret();
-  console.log("xcloudSecret", xcloudSecret);
-  console.log(
-    "config.WALLET_GATEWAY.createWallet.url",
-    config.WALLET_GATEWAY.createWallet.url
+  const xcloudResponse = await axios.post(
+    config.WALLET_GATEWAY.createWallet.url,
+    newWallet,
+    {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: xcloudSecret,
+      },
+    }
   );
-  const xcloudResponse = await axios(config.WALLET_GATEWAY.createWallet.url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: xcloudSecret,
-    },
-    data: newWallet,
-  });
   console.log("----- xcloudResponse ------");
-  console.log(xcloudResponse);
-  console.log("----- xcloudResponse ------");
+  // console.log(xcloudResponse);
   return xcloudResponse;
 };

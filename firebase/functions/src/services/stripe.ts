@@ -26,6 +26,7 @@ export const createCustomerStripe = async ({
 }) => {
   console.log("createCustomerStripe...");
   const customer = await stripe.customers.create({
+    name: `User ${milkshakeUserID}`,
     metadata: {
       milkshakeUserID,
     },

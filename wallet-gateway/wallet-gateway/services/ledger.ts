@@ -87,7 +87,7 @@ export const createWallet = async ({
                     const now = new Date().toISOString();
                     const doc: Record<string, any> = {
                         id: id,
-                        userRelationshipHash: userRelationshipHash,
+                        userRelationshipHash,
                         ownerID: userID,
                         title,
                         note,
@@ -102,7 +102,13 @@ export const createWallet = async ({
                     console.log(`ionDoc: ${JSON.stringify(ionDoc)}`);
                     if (ionDoc !== null) {
                         const result = await txn.execute('INSERT INTO Wallets ?', ionDoc);
-                        const insertedDocument = result.getResultList()[0];
+                        const documentId = result.getResultList()[0].get('documentId');
+                        console.log(`documentId: ${documentId}`);
+                        const resultSet = await txn.execute(
+                            `SELECT * FROM Wallets AS w BY docId WHERE docId = ?`,
+                            documentId,
+                        );
+                        const insertedDocument = resultSet.getResultList()[0];
                         console.log(`insertedDocument: ${JSON.stringify(insertedDocument)}`);
                         const wallet = domValueWalletToTyped(insertedDocument);
                         console.log(`Successfully inserted document into table: ${JSON.stringify(wallet)}`);
