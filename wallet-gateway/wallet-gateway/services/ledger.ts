@@ -180,8 +180,8 @@ export const getWallet_QuantumLedger = async ({
     walletAliasID,
 }: {
     walletAliasID: WalletAliasID;
-}): Promise<Wallet_Quantum[]> => {
-    const p: Promise<Wallet_Quantum[]> = new Promise(async (res, rej) => {
+}): Promise<Wallet_Quantum | undefined> => {
+    const p: Promise<Wallet_Quantum | undefined> = new Promise(async (res, rej) => {
         await qldbDriver.executeLambda(async (txn: TransactionExecutor) => {
             const results = (
                 await txn.execute(`SELECT * FROM Wallets WHERE walletAliasID = '${walletAliasID}'`)
@@ -191,7 +191,8 @@ export const getWallet_QuantumLedger = async ({
                 console.log(`Found wallet: ${JSON.stringify(wallet)}`);
                 return wallet;
             });
-            res(matches);
+            const wallet = matches ? matches[0] : undefined;
+            res(wallet);
         });
     });
     return p;
@@ -245,14 +246,48 @@ export const createTransaction_QuantumLedger = async (
         const explainedAmount = args.explanations
             .filter((e) => e.amount > 0)
             .reduce((acc, curr) => acc + curr.amount, 0);
+        const deductedAmount =
+            args.explanations.filter((e) => e.amount < 0).reduce((acc, curr) => acc + curr.amount, 0) * -1;
         const netZeroAmount = args.explanations.reduce((acc, curr) => acc + curr.amount, 0);
-        if (amount !== explainedAmount || netZeroAmount !== 0) {
+        if (amount !== deductedAmount || amount !== explainedAmount || netZeroAmount !== 0) {
             console.log(`amount ${amount} !== explainedAmount ${explainedAmount}`);
-            rej(`amount ${amount} !== explainedAmount ${explainedAmount}`);
+            rej(
+                `amount ${amount} !== explainedAmount ${explainedAmount} !== deductedAmount ${deductedAmount}, vs netZeroAmount ${netZeroAmount}`,
+            );
         }
+
         try {
             const transaction = await qldbDriver.executeLambda(async (txn: TransactionExecutor) => {
                 console.log('txn.executeLambda...');
+
+                const [senderWalletQLDB, receiverWalletQLDB] = await Promise.all([
+                    getWallet_QuantumLedger({
+                        walletAliasID: args.senderWallet,
+                    }),
+                    getWallet_QuantumLedger({
+                        walletAliasID: args.receiverWallet,
+                    }),
+                ]);
+
+                if (!senderWalletQLDB) {
+                    console.log(`yourWallet is null`);
+                    rej(`yourWallet is null`);
+                    return;
+                }
+                if (senderWalletQLDB.balance < amount) {
+                    rej('You do not have enough money');
+                    return;
+                }
+                if (!receiverWalletQLDB) {
+                    console.log(`receiverWalletQLDB is null`);
+                    rej(`receiverWalletQLDB is null`);
+                    return;
+                }
+
+                const senderWalletUpdatedBalance = parseFloat(`${senderWalletQLDB.balance}`) - parseFloat(`${amount}`);
+                const receiverWalletUpdatedBalance =
+                    parseFloat(`${receiverWalletQLDB.balance}`) + parseFloat(`${amount}`);
+
                 const txType = args.type;
                 const id = uuidv4() as TransactionID;
                 console.log(`id: ${id}`);
@@ -323,6 +358,22 @@ export const createTransaction_QuantumLedger = async (
                         console.log(`insertedDocument: ${JSON.stringify(insertedDocument)}`);
                         const tx = domValueTransactionToTyped(insertedDocument);
                         console.log(`Successfully inserted document<Transaction> into table: ${JSON.stringify(tx)}`);
+                        await txn.execute(
+                            `
+                          UPDATE Wallets SET
+                          balance = '${senderWalletUpdatedBalance}'
+                          WHERE walletAliasID = '${args.senderWallet}'
+                        `,
+                        );
+                        console.log(`Successfully updated sender wallet balance to ${senderWalletUpdatedBalance}`);
+                        await txn.execute(
+                            `
+                            UPDATE Wallets SET
+                            balance = '${receiverWalletUpdatedBalance}'
+                            WHERE walletAliasID = '${args.receiverWallet}'
+                        `,
+                        );
+                        console.log(`Successfully updated receiver wallet balance to ${receiverWalletUpdatedBalance}`);
                         return tx;
                     } else {
                         throw Error('ionDoc is null');

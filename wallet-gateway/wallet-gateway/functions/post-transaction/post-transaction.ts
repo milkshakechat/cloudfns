@@ -1,5 +1,5 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { PostTransactionXCloudRequestBody } from '@milkshakechat/helpers';
+import { PostTransactionXCloudRequestBody, checkIfTradingWallet } from '@milkshakechat/helpers';
 import {
     createTransaction_QuantumLedger as createTransactionQLDB,
     initQuantumLedger_Drivers,
@@ -40,6 +40,14 @@ export const postTransaction = async (event: APIGatewayProxyEvent): Promise<APIG
                 }),
             };
         }
+        if (checkIfTradingWallet(body.senderWallet)) {
+            return {
+                statusCode: 400,
+                body: JSON.stringify({
+                    message: 'You can only spend money from a trading wallet',
+                }),
+            };
+        }
         console.log('body', body);
         const transaction = await createTransactionQLDB(body);
         console.log(`transaction`, transaction);
@@ -64,8 +72,14 @@ export const postTransaction = async (event: APIGatewayProxyEvent): Promise<APIG
         return {
             statusCode: 500,
             body: JSON.stringify({
-                message: `An error occurred while attempting to post the transaction`,
+                message: `An error occurred while attempting to post the transaction. ${JSON.stringify(err)}`,
             }),
         };
     }
 };
+
+// "senderWallet": "user1234-main-trading-wallet",
+//     "receiverWallet": "user567-main-escrow-wallet",
+
+// "senderWallet": "global-store-4e9f9879-d627-401f-abf3-cc2bcf173e26",
+// "receiverWallet": "user1234-main-trading-wallet",

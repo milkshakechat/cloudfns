@@ -25,11 +25,10 @@ export const getWallet = async (event: APIGatewayProxyEvent): Promise<APIGateway
     await initQuantumLedger_Drivers();
     const queryParams = event.queryStringParameters as unknown as GetWalletXCloudRequestBody;
     try {
-        const wallets = await getWallet_QuantumLedger({
+        const wallet = await getWallet_QuantumLedger({
             walletAliasID: queryParams.walletAliasID,
         });
-        const wallet = wallets ? wallets[0] : undefined;
-        if (!wallets || !wallet) {
+        if (!wallet) {
             return {
                 statusCode: 500,
                 body: JSON.stringify({
