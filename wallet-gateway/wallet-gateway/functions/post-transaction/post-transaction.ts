@@ -1,6 +1,9 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { CreateWalletXCloudRequestBody, UserID, WalletType } from '@milkshakechat/helpers';
-import { createWallet as createWalletQLDB, initQuantumLedger_Drivers } from '../../services/ledger';
+import { PostTransactionXCloudRequestBody } from '@milkshakechat/helpers';
+import {
+    createTransaction_QuantumLedger as createTransactionQLDB,
+    initQuantumLedger_Drivers,
+} from '../../services/ledger';
 
 /**
  *
@@ -12,8 +15,8 @@ import { createWallet as createWalletQLDB, initQuantumLedger_Drivers } from '../
  *
  */
 
-export const createWallet = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-    console.log('createWallet');
+export const postTransaction = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+    console.log('postTransaction');
     console.log('-------- event -------');
     console.log(event);
     console.log('-------- event -------');
@@ -26,33 +29,33 @@ export const createWallet = async (event: APIGatewayProxyEvent): Promise<APIGate
             }),
         };
     }
-    console.log('createWallet...');
+    console.log('postTransaction...');
     try {
-        const body = JSON.parse(event.body) as CreateWalletXCloudRequestBody;
+        const body = JSON.parse(event.body) as PostTransactionXCloudRequestBody;
+        if (!body.amount || !body.senderWallet || !body.receiverWallet) {
+            return {
+                statusCode: 400,
+                body: JSON.stringify({
+                    message: 'missing request body',
+                }),
+            };
+        }
         console.log('body', body);
-        const { userID, title, note, type, walletAliasID } = body;
-        console.log('userID', userID);
-        const tradingWallet = await createWalletQLDB({
-            walletAliasID,
-            userID,
-            title,
-            note,
-            type,
-        });
-        console.log(`tradingWallet`, tradingWallet);
-        if (!tradingWallet) {
+        const transaction = await createTransactionQLDB(body);
+        console.log(`transaction`, transaction);
+        if (!transaction) {
             return {
                 statusCode: 500,
                 body: JSON.stringify({
-                    message: `Could not create a trading wallet for user ${userID}`,
+                    message: `Could not process transaction "${body.title}"`,
                 }),
             };
         }
         const resp = {
             statusCode: 200,
             body: JSON.stringify({
-                message: `Successfully created wallet=${tradingWallet.id} for user=${userID}`,
-                wallet: tradingWallet,
+                message: `Successfully posted transaction txID=${transaction.id} title="${body.title}"`,
+                transaction: transaction,
             }),
         };
         return resp;
@@ -61,7 +64,7 @@ export const createWallet = async (event: APIGatewayProxyEvent): Promise<APIGate
         return {
             statusCode: 500,
             body: JSON.stringify({
-                message: 'An error occurred while creating the wallet',
+                message: `An error occurred while attempting to post the transaction`,
             }),
         };
     }

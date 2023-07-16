@@ -1,4 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
+import { getWallet_QuantumLedger, initQuantumLedger_Drivers } from '../../services/ledger';
+import { GetWalletXCloudRequestBody } from '@milkshakechat/helpers';
 
 /**
  *
@@ -10,17 +12,9 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
  *
  */
 
-interface RequestParamsType {
-    walletID: string;
-    userRelationshipHash: string;
-}
 export const getWallet = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     console.log(event);
-
-    if (
-        !event.queryStringParameters ||
-        (!event.queryStringParameters.walletID && !event.queryStringParameters.userRelationshipHash)
-    ) {
+    if (!event.queryStringParameters || !event.queryStringParameters.walletAliasID) {
         return {
             statusCode: 400,
             body: JSON.stringify({
@@ -28,12 +22,26 @@ export const getWallet = async (event: APIGatewayProxyEvent): Promise<APIGateway
             }),
         };
     }
+    await initQuantumLedger_Drivers();
+    const queryParams = event.queryStringParameters as unknown as GetWalletXCloudRequestBody;
     try {
-        const params = event.queryStringParameters as unknown as RequestParamsType;
+        const wallets = await getWallet_QuantumLedger({
+            walletAliasID: queryParams.walletAliasID,
+        });
+        const wallet = wallets ? wallets[0] : undefined;
+        if (!wallets || !wallet) {
+            return {
+                statusCode: 500,
+                body: JSON.stringify({
+                    message: `No wallet found for walletAliasID=${queryParams.walletAliasID}`,
+                }),
+            };
+        }
         return {
             statusCode: 200,
             body: JSON.stringify({
-                message: `You requested walletID=${params.walletID} or userRelationshipHash=${params.userRelationshipHash}`,
+                message: `Successfully found wallet for your request walletAliasID=${queryParams.walletAliasID}`,
+                wallet: wallet,
             }),
         };
     } catch (err) {

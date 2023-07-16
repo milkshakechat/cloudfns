@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@aws-sdk/smithy-client": "^3.370.0",
+    "@milkshakechat/helpers": "^1.0.140",
     "amazon-qldb-driver-nodejs": "^3.0.1",
     "ion-js": "^4.3.0"
   }
