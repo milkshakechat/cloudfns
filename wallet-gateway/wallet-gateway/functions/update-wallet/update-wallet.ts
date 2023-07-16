@@ -1,6 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { CreateWalletXCloudRequestBody, UserID, WalletType } from '@milkshakechat/helpers';
-import { createWallet as createWalletQLDB, initQuantumLedger_Drivers } from '../../services/ledger';
+import { UpdateWalletXCloudRequestBody, UserID, WalletType } from '@milkshakechat/helpers';
+import { updateWallet_QuantumLedger as updateWalletQLDB, initQuantumLedger_Drivers } from '../../services/ledger';
 
 /**
  *
@@ -12,8 +12,8 @@ import { createWallet as createWalletQLDB, initQuantumLedger_Drivers } from '../
  *
  */
 
-export const createWallet = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-    console.log('createWallet');
+export const updateWallet = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+    console.log('updateWallet');
     console.log('-------- event -------');
     console.log(event);
     console.log('-------- event -------');
@@ -26,33 +26,31 @@ export const createWallet = async (event: APIGatewayProxyEvent): Promise<APIGate
             }),
         };
     }
-    console.log('createWallet...');
+    console.log('updateWallet...');
     try {
-        const body = JSON.parse(event.body) as CreateWalletXCloudRequestBody;
+        const body = JSON.parse(event.body) as UpdateWalletXCloudRequestBody;
         console.log('body', body);
-        const { userID, title, note, type, walletAliasID } = body;
-        console.log('userID', userID);
-        const tradingWallet = await createWalletQLDB({
+        const { walletAliasID, title, note } = body;
+        console.log('walletAliasID', walletAliasID);
+        const wallet = await updateWalletQLDB({
             walletAliasID,
-            userID,
             title,
             note,
-            type,
         });
-        console.log(`tradingWallet`, tradingWallet);
-        if (!tradingWallet) {
+        console.log(`wallet`, wallet);
+        if (!wallet) {
             return {
                 statusCode: 500,
                 body: JSON.stringify({
-                    message: `Could not create a trading wallet for user ${userID}`,
+                    message: `Could not update wallet ${walletAliasID}`,
                 }),
             };
         }
         const resp = {
             statusCode: 200,
             body: JSON.stringify({
-                message: `Successfully created wallet=${tradingWallet.id} for user=${userID}`,
-                wallet: tradingWallet,
+                message: `Successfully updated wallet=${wallet.id} walletAliasID=${wallet.walletAliasID}`,
+                wallet: wallet,
             }),
         };
         return resp;
@@ -61,7 +59,7 @@ export const createWallet = async (event: APIGatewayProxyEvent): Promise<APIGate
         return {
             statusCode: 500,
             body: JSON.stringify({
-                message: 'An error occurred while creating the wallet',
+                message: 'An error occurred while updating the wallet',
             }),
         };
     }

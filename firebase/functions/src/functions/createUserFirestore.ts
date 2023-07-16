@@ -17,7 +17,7 @@ import { generateAvailablePlaceholderNames } from "../utils/username";
 import { createFirestoreTimestamp } from "../services/firestore";
 import { sleep } from "../utils/utils";
 import { createCustomerStripe, initStripe } from "../services/stripe";
-import { createNewUserWallet } from "../services/ledger";
+import { createNewUserWallets } from "../services/ledger";
 
 export const createuserfirestore = functions.auth
   .user()
@@ -28,13 +28,12 @@ export const createuserfirestore = functions.auth
         await generateAvailablePlaceholderNames();
       const now = createFirestoreTimestamp();
 
-      const _wallet = await createNewUserWallet({ userID: user.uid as UserID });
-      console.log("Got wallet");
-      console.log(Object.keys(_wallet));
-      console.log("---- wallet body");
-      console.log(_wallet.data);
-      console.log("---------");
-      const wallet = _wallet.data.wallet;
+      const { tradingWallet, escrowWallet } = await createNewUserWallets({
+        userID: user.uid as UserID,
+      });
+      console.log("Got wallets");
+      console.log("tradingWallet", tradingWallet);
+      console.log("escrowWallet", escrowWallet);
       const newUser: User_Firestore = {
         id: user.uid as UserID,
         username: username as Username,
@@ -54,7 +53,8 @@ export const createuserfirestore = functions.auth
         gender: genderEnum.other,
         interestedIn: [],
         usernameLastUpdated: now,
-        mainWalletID: wallet.id as WalletID,
+        tradingWallet: tradingWallet.walletAliasID,
+        escrowWallet: escrowWallet.walletAliasID,
       };
 
       const db = admin.firestore();

@@ -1,3 +1,5 @@
+import { WalletAliasID } from '@milkshakechat/helpers';
+
 const devConfig: ConfigEnv = {
     WALLET_GATEWAY: {
         region: 'ap-northeast-1',
@@ -22,6 +24,7 @@ const devConfig: ConfigEnv = {
             WALLET: 'wallets',
             TRANSACTION: 'transactions',
         },
+        globalStoreWallet: 'global-store-4e9f9879-d627-401f-abf3-cc2bcf173e26' as WalletAliasID,
     },
 };
 
@@ -49,6 +52,7 @@ const stagingConfig: ConfigEnv = {
             WALLET: 'wallets',
             TRANSACTION: 'transactions',
         },
+        globalStoreWallet: 'global-store-4e9f9879-d627-401f-abf3-cc2bcf173e26' as WalletAliasID,
     },
 };
 
@@ -76,6 +80,7 @@ const prodConfig: ConfigEnv = {
             WALLET: 'wallets',
             TRANSACTION: 'transactions',
         },
+        globalStoreWallet: 'global-store-4e9f9879-d627-401f-abf3-cc2bcf173e26' as WalletAliasID,
     },
 };
 
@@ -104,6 +109,7 @@ interface ConfigEnv {
         tables: {
             [key in QuantumLedgerTables]: QuantumLedgerTable;
         };
+        globalStoreWallet: WalletAliasID;
     };
 }
 
