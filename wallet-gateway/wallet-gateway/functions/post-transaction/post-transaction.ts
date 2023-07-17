@@ -40,7 +40,7 @@ export const postTransaction = async (event: APIGatewayProxyEvent): Promise<APIG
                 }),
             };
         }
-        if (checkIfTradingWallet(body.senderWallet)) {
+        if (!checkIfTradingWallet(body.senderWallet)) {
             return {
                 statusCode: 400,
                 body: JSON.stringify({

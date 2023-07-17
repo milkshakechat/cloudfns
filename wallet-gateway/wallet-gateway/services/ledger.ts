@@ -16,10 +16,10 @@ import {
     Transaction_Quantum,
     UserID,
     UserRelationshipHash,
-    WalletAliasID,
     WalletID,
     WalletType,
     Wallet_Quantum,
+    WishBuyFrequency,
     checkIfEscrowWallet,
     getMainUserTradingWallet,
     getUserEscrowWallet,
@@ -27,6 +27,7 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 import { dom, load, dumpBinary, dumpText } from 'ion-js';
 import { sleep } from '../utils/utils';
+import { WalletAliasID } from '@milkshakechat/helpers';
 
 /**
  * Use the qldbDriver to interact with ledgers
@@ -72,38 +73,61 @@ export const initQuantumLedger_Drivers = async () => {
     });
     return qldbDriver;
 };
+const convertIonHashToJSArray = (result: dom.Value | null) => {
+    if (result === null) {
+        return [];
+    }
+    const _x = Object.values(result);
+    const _y = _x[0];
+
+    const _z = Object.keys(_y);
+    const entries = _z.map((_k) => {
+        return {
+            key: _k,
+            value: result.get(_k),
+        };
+    });
+    return entries;
+};
 export const domValueWalletToTyped = (result: dom.Value) => {
     const wallet: Wallet_Quantum = {
-        id: (result.get('id') || '') as WalletID,
-        walletAliasID: (result.get('walletAliasID') || '') as WalletAliasID,
-        ownerID: (result.get('ownerID') || '') as UserID,
-        title: (result.get('title') || '') as string,
-        note: (result.get('note') || '') as string,
-        createdAt: new Date((result.get('createdAt') || '0') as string),
-        balance: (result.get('balance') || 0) as number,
-        type: (result.get('type') || '') as WalletType,
-        isLocked: (result.get('isLocked') || false) as boolean,
+        id: (result.get('id')?.stringValue() || '') as WalletID,
+        walletAliasID: (result.get('walletAliasID')?.stringValue() || '') as WalletAliasID,
+        ownerID: (result.get('ownerID')?.stringValue() || '') as UserID,
+        title: (result.get('title')?.stringValue() || '') as string,
+        note: (result.get('note')?.stringValue() || '') as string,
+        createdAt: new Date((result.get('createdAt')?.dateValue() || '0') as string),
+        balance: (result.get('balance')?.numberValue() || 0) as number,
+        type: (result.get('type')?.stringValue() || '') as WalletType,
+        isLocked: (result.get('isLocked')?.booleanValue || false) as boolean,
     };
     return wallet;
 };
 export const domValueTransactionToTyped = (result: dom.Value) => {
-    const explanations = result.get('explanations');
-    console.log(`explanations`, explanations);
-    console.log(`Object.keys(explanations)`, Object.keys(explanations ? explanations : {}));
-    const explFields = explanations?.get('_fields') || null;
+    const _expls = result.get('explanations');
+    const expls = convertIonHashToJSArray(_expls) || [];
 
-    console.log(`explFields`, explFields);
-    if (explFields) {
-        const _brosef = explFields.get('brosef-main-trading-wallet');
-        console.log(`_brosef`, _brosef);
-        console.log(`typeof _brosef`, typeof _brosef);
-    }
-    if (explFields) {
-        const _ero = (explFields as any)['brosef-main-trading-wallet'];
-        console.log(`_ero`, _ero);
-        console.log(`typeof _ero`, typeof _ero);
-    }
-    console.log(`typeof explFields`, typeof explFields);
+    type ExplSeg = {
+        walletAliasID: WalletAliasID;
+        explanation: string;
+        amount: number;
+    };
+    type ExplSegMap = Record<WalletAliasID, ExplSeg>;
+    const explanations = expls.reduce((acc, curr) => {
+        const walletAliasID = curr.key;
+        const explanation = curr.value?.get('explanation');
+        const amount = curr.value?.get('amount');
+        return {
+            ...acc,
+            [walletAliasID]: {
+                walletAliasID,
+                explanation,
+                amount,
+            },
+        };
+    }, {} as ExplSegMap);
+
+    console.log(`explanations`, explanations);
 
     // const _expls = explFields.map((expl) => {
     //     const x = expl.get(expl);
@@ -111,65 +135,82 @@ export const domValueTransactionToTyped = (result: dom.Value) => {
     const metadata = result.get('metadata');
     console.log(`metadata`, metadata);
     console.log(`metadata.transactionID`, metadata?.get('transactionID'));
+
     console.log(`metadata.salesMetadata`, metadata?.get('salesMetadata'));
     console.log(`metadata.recallMetadata`, metadata?.get('recallMetadata'));
     console.log(`metadata.transferMetadata`, metadata?.get('transferMetadata'));
     console.log(`metadata.topUpMetadata`, metadata?.get('topUpMetadata'));
     console.log(`metadata.cashOutMetadata`, metadata?.get('cashOutMetadata'));
+
+    const salesMetadata = metadata?.get('salesMetadata') || undefined;
+    const recallMetadata = metadata?.get('recallMetadata') || undefined;
+    const transferMetadata = metadata?.get('transferMetadata') || undefined;
+    const topUpMetadata = metadata?.get('topUpMetadata') || undefined;
+    const cashOutMetadata = metadata?.get('cashOutMetadata') || undefined;
+
     const tx: Transaction_Quantum = {
         // base info
-        id: (result.get('id') || '') as TransactionID,
-        title: (result.get('title') as unknown as string) || '',
-        note: (result.get('note') as unknown as string) || '',
-        createdAt: new Date((result.get('createdAt') || '0') as string),
+        id: (result.get('id')?.stringValue() || '') as TransactionID,
+        title: result.get('title')?.stringValue() || '',
+        note: result.get('note')?.stringValue() || '',
+        createdAt: new Date((result.get('createdAt')?.dateValue() || '0') as string),
         // foriegn keys
-        sendingWallet: (result.get('sendingWallet') || '') as WalletAliasID,
-        recievingWallet: (result.get('recievingWallet') || '') as WalletAliasID, // escrow wallet
-        purchaseManifestID: (result.get('purchaseManifestID') || '') as PurchaseMainfestID,
+        sendingWallet: (result.get('sendingWallet')?.stringValue() || '') as WalletAliasID,
+        recievingWallet: (result.get('recievingWallet')?.stringValue() || '') as WalletAliasID, // escrow wallet
+        purchaseManifestID: (result.get('purchaseManifestID')?.stringValue() || '') as PurchaseMainfestID,
         // archive log with pov (may include future creditors such as club boss)
-        explanations: {
-            ['WalletAliasID' as WalletAliasID]: {
-                walletAliasID: 'WalletAliasID' as WalletAliasID,
-                explanation: '',
-                amount: 0,
-            },
-        },
-        // explanations: {
-        //   [key: WalletAliasID]: {
-        //     walletAliasID: WalletAliasID;
-        //     explanation: string;
-        //     amount: number;
-        //   };
-        // },
+        explanations,
         // transaction details
-        amount: (result.get('amount') || 0) as number,
-        type: (result.get('type') || '') as TransactionType,
-        attribution: (result.get('attribution') || '') as UserRelationshipHash,
-        gotRecalled: (result.get('gotRecalled') || false) as boolean, // recalled means the money returned to sender
-        gotCashedOut: (result.get('gotCashedOut') || false) as boolean, // cashed out means the money was withdrawn from escrow
-        recallTransactionID: (result.get('recallTransactionID') || '') as TransactionID,
-        cashOutTransactionID: (result.get('cashOutTransactionID') || '') as TransactionID,
+        amount: (result.get('amount')?.numberValue() || 0) as number,
+        type: (result.get('type')?.stringValue() || '') as TransactionType,
+        attribution: (result.get('attribution')?.stringValue() || '') as UserRelationshipHash,
+        gotRecalled: (result.get('gotRecalled')?.booleanValue() || false) as boolean, // recalled means the money returned to sender
+        gotCashedOut: (result.get('gotCashedOut')?.booleanValue() || false) as boolean, // cashed out means the money was withdrawn from escrow
+        recallTransactionID: (result.get('recallTransactionID')?.stringValue() || '') as TransactionID,
+        cashOutTransactionID: (result.get('cashOutTransactionID')?.stringValue() || '') as TransactionID,
         metadata: {
-            transactionID: (result.get('id') || '') as TransactionID,
+            transactionID: (metadata?.get('transactionID') || '') as TransactionID,
+            salesMetadata: salesMetadata
+                ? {
+                      buyerNote: salesMetadata?.get('buyerNote')?.stringValue() || '',
+                      promoCode: salesMetadata?.get('promoCode')?.stringValue() || '',
+                      // deal details
+                      agreedCookiePrice: (salesMetadata?.get('agreedCookiePrice')?.numberValue() || 0) as number,
+                      originalCookiePrice: (salesMetadata?.get('originalCookiePrice')?.numberValue() || 0) as number,
+                      agreedBuyFrequency: (salesMetadata?.get('agreedBuyFrequency')?.stringValue() ||
+                          WishBuyFrequency.ONE_TIME) as WishBuyFrequency,
+                      originalBuyFrequency: (salesMetadata?.get('originalBuyFrequency')?.stringValue() ||
+                          WishBuyFrequency.ONE_TIME) as WishBuyFrequency,
+                  }
+                : undefined,
+            recallMetadata: recallMetadata
+                ? {
+                      originalTransactionID: (recallMetadata?.get('originalTransactionID')?.stringValue() ||
+                          '') as TransactionID,
+                      recallerWalletID: (recallMetadata?.get('recallerWalletID')?.stringValue() || '') as WalletAliasID,
+                      recallerNote: recallMetadata?.get('recallerNote')?.stringValue() || '',
+                  }
+                : undefined,
+            transferMetadata: transferMetadata
+                ? {
+                      senderNote: transferMetadata?.get('senderNote')?.stringValue() || '',
+                  }
+                : undefined,
+            topUpMetadata: topUpMetadata
+                ? {
+                      internalNote: topUpMetadata?.get('internalNote')?.stringValue() || '',
+                      promoCode: topUpMetadata?.get('promoCode')?.stringValue() || '',
+                  }
+                : undefined,
+            cashOutMetadata: cashOutMetadata
+                ? {
+                      initiatorWallet: (cashOutMetadata?.get('initiatorWallet')?.stringValue() || '') as WalletAliasID,
+                      cashoutCode: (cashOutMetadata?.get('cashoutCode')?.stringValue() || '') as string,
+                  }
+                : undefined,
         },
     };
     return tx;
-    // console.log(`domValueTransactionToTyped`, result);
-    // const _tx = dumpText(result);
-    // console.log(`transaction _tx`, _tx);
-    // console.log(`typeof _tx`, typeof _tx);
-    // const a = load(_tx);
-    // console.log(`const a = load(_tx)`, a);
-    // console.log(`typeof a`, typeof a);
-    // const b = JSON.stringify(a);
-    // console.log(`const b = JSON.stringify(b)`, b);
-    // console.log(`typeof b`, typeof b);
-    // const tx = JSON.parse(_tx) as Transaction_Quantum;
-    // console.log(`transaction tx`, tx);
-    // console.log(`- typeof tx`, typeof tx);
-    // return tx;
-    // const tx = load(_tx);
-    // return tx;
 };
 
 export const createWallet = async ({
@@ -215,7 +256,7 @@ export const createWallet = async ({
                     };
                     console.log(`doc: ${JSON.stringify(doc)}`);
                     // Create a sample Ion doc
-                    const ionDoc = load(dumpBinary(doc));
+                    const ionDoc = load(dumpText(doc));
                     console.log(`ionDoc: ${JSON.stringify(ionDoc)}`);
                     if (ionDoc !== null) {
                         const result = await txn.execute('INSERT INTO Wallets ?', ionDoc);
@@ -457,14 +498,14 @@ export const _createTransaction = async (
             amount: args.amount,
             type: args.type,
             attribution: args.attribution,
-            gotRecalled: false,
+            gotRecalled: args.gotRecalled ? args.gotRecalled : false,
             gotCashedOut: false,
             metadata: transactionMetadata,
         };
         console.log(`doc: ${JSON.stringify(doc)}`);
         // Create a sample Ion doc
         try {
-            const bd = dumpBinary(doc);
+            const bd = dumpText(doc);
             console.log(`bd: ${bd}`);
             const ionDoc = load(bd);
             console.log(`ionDoc: ${JSON.stringify(ionDoc)}`);
@@ -484,7 +525,7 @@ export const _createTransaction = async (
                 await txn.execute(
                     `
             UPDATE Wallets SET
-            balance = '${senderWalletUpdatedBalance}'
+            balance = ${senderWalletUpdatedBalance}
             WHERE walletAliasID = '${args.senderWallet}'
           `,
                 );
@@ -492,7 +533,7 @@ export const _createTransaction = async (
                 await txn.execute(
                     `
               UPDATE Wallets SET
-              balance = '${receiverWalletUpdatedBalance}'
+              balance = ${receiverWalletUpdatedBalance}
               WHERE walletAliasID = '${args.receiverWallet}'
           `,
                 );
@@ -579,7 +620,22 @@ export const recallTransaction_QuantumLedger = async (args: RecallTransactionXCl
                     rej(`Already redeemed tx=${args.transactionID}`);
                     return;
                 }
-                if (tx.sendingWallet !== args.recallerWalletID || tx.recievingWallet !== args.recallerWalletID) {
+                console.log(`
+              
+              tx.sendingWallet !== args.recallerWalletID = ${tx.sendingWallet !== args.recallerWalletID}
+              ||
+              tx.recievingWallet !== args.recallerWalletID = ${tx.recievingWallet !== args.recallerWalletID}
+              
+              `);
+                console.log(`
+              
+              tx.sendingWallet = ${tx.sendingWallet}
+              args.recallerWalletID = ${args.recallerWalletID}
+              tx.recievingWallet = ${tx.recievingWallet}
+              args.recallerWalletID = ${args.recallerWalletID}
+              
+              `);
+                if (tx.sendingWallet !== args.recallerWalletID && tx.recievingWallet !== args.recallerWalletID) {
                     console.log(`Only the sender or receiver can recall a transaction. tx=${args.transactionID}`);
                     rej(`Only the sender or receiver can recall a transaction. tx=${args.transactionID}`);
                     return;
@@ -605,6 +661,7 @@ export const recallTransaction_QuantumLedger = async (args: RecallTransactionXCl
                             amount: e.amount * -1,
                         };
                     }),
+                    gotRecalled: true,
                     recallMetadata: {
                         originalTransactionID: tx.id,
                         recallerWalletID: args.recallerWalletID,
@@ -621,8 +678,8 @@ export const recallTransaction_QuantumLedger = async (args: RecallTransactionXCl
                 const updatedTx = await txn.execute(
                     `
                       UPDATE Transactions SET
-                      gotRecalled = true
-                      recallTransactionID = ${recall_Tx.id}
+                      gotRecalled = true,
+                      recallTransactionID = '${recall_Tx.id}'
                       WHERE id = '${tx.id}'
                     `,
                 );
@@ -715,8 +772,8 @@ export const cashOutTransaction_QuantumLedger = async (args: CashOutXCloudReques
                 const updatedTx = await txn.execute(
                     `
                     UPDATE Transactions SET
-                    gotRecalled = true
-                    cashOutTransactionID = ${recall_Tx.id}
+                    gotRecalled = true,
+                    cashOutTransactionID = '${recall_Tx.id}'
                     WHERE id = '${tx.id}'
                   `,
                 );
