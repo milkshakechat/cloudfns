@@ -90,51 +90,120 @@ Resources:
         EntryPoints:
         - app.ts
   UpdateWalletFunction:
-      Type: AWS::Serverless::Function 
-      Properties:
-        CodeUri: wallet-gateway/  # Your code folder for create wallet
-        Handler: app.updateWallet  # Your handler function for create wallet
-        Runtime: nodejs18.x
-        Architectures:
-        - x86_64
-        Events:
-          GetWallet:
-            Type: Api
-            Properties:
-              Path: /wallet/update
-              Method: post
-              RestApiId: !Ref MyAuthApi
-      Metadata: 
-        BuildMethod: esbuild
-        BuildProperties:
-          Minify: true
-          Target: es2020
-          Sourcemap: true
-          EntryPoints:
-          - app.ts
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: wallet-gateway/  # Your code folder for create wallet
+      Handler: app.updateWallet  # Your handler function for create wallet
+      Runtime: nodejs18.x
+      Architectures:
+      - x86_64
+      Events:
+        UpdateWallet:
+          Type: Api
+          Properties:
+            Path: /wallet/update
+            Method: post
+            RestApiId: !Ref MyAuthApi
+    Metadata: 
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2020
+        Sourcemap: true
+        EntryPoints:
+        - app.ts
   PostTransactionFunction:
-        Type: AWS::Serverless::Function 
-        Properties:
-          CodeUri: wallet-gateway/  # Your code folder for create wallet
-          Handler: app.postTransaction  # Your handler function for create wallet
-          Runtime: nodejs18.x
-          Architectures:
-          - x86_64
-          Events:
-            GetWallet:
-              Type: Api
-              Properties:
-                Path: /transaction
-                Method: post
-                RestApiId: !Ref MyAuthApi
-        Metadata: 
-          BuildMethod: esbuild
-          BuildProperties:
-            Minify: true
-            Target: es2020
-            Sourcemap: true
-            EntryPoints:
-            - app.ts
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: wallet-gateway/  # Your code folder for create wallet
+      Handler: app.postTransaction  # Your handler function for create wallet
+      Runtime: nodejs18.x
+      Architectures:
+      - x86_64
+      Events:
+        PostTransaction:
+          Type: Api
+          Properties:
+            Path: /transaction
+            Method: post
+            RestApiId: !Ref MyAuthApi
+    Metadata: 
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2020
+        Sourcemap: true
+        EntryPoints:
+        - app.ts
+  GetTransactionFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: wallet-gateway/  # Your code folder for create wallet
+      Handler: app.getTransaction  # Your handler function for create wallet
+      Runtime: nodejs18.x
+      Architectures:
+      - x86_64
+      Events:
+        GetTransaction:
+          Type: Api
+          Properties:
+            Path: /transaction
+            Method: get
+            RestApiId: !Ref MyAuthApi
+    Metadata: 
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2020
+        Sourcemap: true
+        EntryPoints:
+        - app.ts
+  RecallTransactionFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: wallet-gateway/  # Your code folder for create wallet
+      Handler: app.recallTransaction  # Your handler function for create wallet
+      Runtime: nodejs18.x
+      Architectures:
+      - x86_64
+      Events:
+        RecallTransaction:
+          Type: Api
+          Properties:
+            Path: /transaction/recall
+            Method: post
+            RestApiId: !Ref MyAuthApi
+    Metadata: 
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2020
+        Sourcemap: true
+        EntryPoints:
+        - app.ts
+  CashOutTransactionFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: wallet-gateway/  # Your code folder for create wallet
+      Handler: app.cashOutTransaction  # Your handler function for create wallet
+      Runtime: nodejs18.x
+      Architectures:
+      - x86_64
+      Events:
+        CashOutTransaction:
+          Type: Api
+          Properties:
+            Path: /transaction/cashout
+            Method: post
+            RestApiId: !Ref MyAuthApi
+    Metadata: 
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2020
+        Sourcemap: true
+        EntryPoints:
+        - app.ts
 
   ApplicationResourceGroup:
     Type: AWS::ResourceGroups::Group

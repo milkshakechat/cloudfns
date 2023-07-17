@@ -1,7 +1,7 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { PostTransactionXCloudRequestBody, checkIfTradingWallet } from '@milkshakechat/helpers';
+import { CashOutXCloudRequestBody, checkIfTradingWallet } from '@milkshakechat/helpers';
 import {
-    createTransaction_QuantumLedger as createTransactionQLDB,
+    cashOutTransaction_QuantumLedger as cashOutTransactionQLDB,
     initQuantumLedger_Drivers,
 } from '../../services/ledger';
 
@@ -15,8 +15,8 @@ import {
  *
  */
 
-export const postTransaction = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-    console.log('postTransaction');
+export const cashOutTransaction = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+    console.log('cashOutTransaction');
     console.log('-------- event -------');
     console.log(event);
     console.log('-------- event -------');
@@ -29,10 +29,11 @@ export const postTransaction = async (event: APIGatewayProxyEvent): Promise<APIG
             }),
         };
     }
-    console.log('postTransaction...');
+    console.log('cashOutTransaction...');
     try {
-        const body = JSON.parse(event.body) as PostTransactionXCloudRequestBody;
-        if (!body.amount || !body.senderWallet || !body.receiverWallet) {
+        const body = JSON.parse(event.body) as CashOutXCloudRequestBody;
+        console.log('body', body);
+        if (!body || !body.transactionID) {
             return {
                 statusCode: 400,
                 body: JSON.stringify({
@@ -40,29 +41,20 @@ export const postTransaction = async (event: APIGatewayProxyEvent): Promise<APIG
                 }),
             };
         }
-        if (!checkIfTradingWallet(body.senderWallet)) {
-            return {
-                statusCode: 400,
-                body: JSON.stringify({
-                    message: 'You can only spend money from a trading wallet',
-                }),
-            };
-        }
-        console.log('body', body);
-        const transaction = await createTransactionQLDB(body);
+        const transaction = await cashOutTransactionQLDB(body);
         console.log(`transaction`, transaction);
         if (!transaction) {
             return {
                 statusCode: 500,
                 body: JSON.stringify({
-                    message: `Could not process transaction "${body.title}"`,
+                    message: `Could not process cash out for transaction "${body.transactionID}"`,
                 }),
             };
         }
         const resp = {
             statusCode: 200,
             body: JSON.stringify({
-                message: `Successfully posted transaction txID=${transaction.id} title="${body.title}"`,
+                message: `Successfully cashed out transaction txID=${transaction.id}`,
                 transaction: transaction,
             }),
         };
@@ -72,7 +64,7 @@ export const postTransaction = async (event: APIGatewayProxyEvent): Promise<APIG
         return {
             statusCode: 500,
             body: JSON.stringify({
-                message: `An error occurred while attempting to post the transaction. ${JSON.stringify(err)}`,
+                message: `An error occurred while attempting to recall the transaction. ${JSON.stringify(err)}`,
             }),
         };
     }

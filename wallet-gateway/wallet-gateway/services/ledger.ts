@@ -6,23 +6,28 @@ import { QLDBSessionClientConfig } from '@aws-sdk/client-qldb-session';
 import { QldbDriver, RetryConfig, TransactionExecutor } from 'amazon-qldb-driver-nodejs';
 import { NodeHttpHandlerOptions } from '@aws-sdk/node-http-handler';
 import {
+    CashOutXCloudRequestBody,
     PostTransactionXCloudRequestBody,
+    PurchaseMainfestID,
+    RecallTransactionXCloudRequestBody,
     TransactionID,
     TransactionMetadata,
     TransactionType,
     Transaction_Quantum,
     UserID,
     UserRelationshipHash,
-    WalletAliasID,
     WalletID,
     WalletType,
     Wallet_Quantum,
+    WishBuyFrequency,
+    checkIfEscrowWallet,
     getMainUserTradingWallet,
     getUserEscrowWallet,
 } from '@milkshakechat/helpers';
 import { v4 as uuidv4 } from 'uuid';
 import { dom, load, dumpBinary, dumpText } from 'ion-js';
 import { sleep } from '../utils/utils';
+import { WalletAliasID } from '@milkshakechat/helpers';
 
 /**
  * Use the qldbDriver to interact with ledgers
@@ -68,29 +73,143 @@ export const initQuantumLedger_Drivers = async () => {
     });
     return qldbDriver;
 };
+const convertIonHashToJSArray = (result: dom.Value | null) => {
+    if (result === null) {
+        return [];
+    }
+    const _x = Object.values(result);
+    const _y = _x[0];
+
+    const _z = Object.keys(_y);
+    const entries = _z.map((_k) => {
+        return {
+            key: _k,
+            value: result.get(_k),
+        };
+    });
+    return entries;
+};
 export const domValueWalletToTyped = (result: dom.Value) => {
     const wallet: Wallet_Quantum = {
-        id: (result.get('id') || '') as WalletID,
-        walletAliasID: (result.get('walletAliasID') || '') as WalletAliasID,
-        ownerID: (result.get('ownerID') || '') as UserID,
-        title: (result.get('title') || '') as string,
-        note: (result.get('note') || '') as string,
-        createdAt: new Date((result.get('createdAt') || '0') as string),
-        balance: (result.get('balance') || 0) as number,
-        type: (result.get('type') || '') as WalletType,
-        isLocked: (result.get('isLocked') || false) as boolean,
+        id: (result.get('id')?.stringValue() || '') as WalletID,
+        walletAliasID: (result.get('walletAliasID')?.stringValue() || '') as WalletAliasID,
+        ownerID: (result.get('ownerID')?.stringValue() || '') as UserID,
+        title: (result.get('title')?.stringValue() || '') as string,
+        note: (result.get('note')?.stringValue() || '') as string,
+        createdAt: new Date((result.get('createdAt')?.dateValue() || '0') as string),
+        balance: (result.get('balance')?.numberValue() || 0) as number,
+        type: (result.get('type')?.stringValue() || '') as WalletType,
+        isLocked: (result.get('isLocked')?.booleanValue || false) as boolean,
     };
     return wallet;
 };
 export const domValueTransactionToTyped = (result: dom.Value) => {
-    console.log(`domValueTransactionToTyped`, result);
-    const text = dumpText(result);
-    console.log(`text`, text);
-    console.log(`typeof text`, typeof text);
-    const _tx = JSON.stringify(text);
-    console.log(`transaction _tx`, _tx);
-    const tx = JSON.parse(_tx) as Transaction_Quantum;
-    console.log(`transaction tx`, tx);
+    const _expls = result.get('explanations');
+    const expls = convertIonHashToJSArray(_expls) || [];
+
+    type ExplSeg = {
+        walletAliasID: WalletAliasID;
+        explanation: string;
+        amount: number;
+    };
+    type ExplSegMap = Record<WalletAliasID, ExplSeg>;
+    const explanations = expls.reduce((acc, curr) => {
+        const walletAliasID = curr.key;
+        const explanation = curr.value?.get('explanation');
+        const amount = curr.value?.get('amount');
+        return {
+            ...acc,
+            [walletAliasID]: {
+                walletAliasID,
+                explanation,
+                amount,
+            },
+        };
+    }, {} as ExplSegMap);
+
+    console.log(`explanations`, explanations);
+
+    // const _expls = explFields.map((expl) => {
+    //     const x = expl.get(expl);
+    // });
+    const metadata = result.get('metadata');
+    console.log(`metadata`, metadata);
+    console.log(`metadata.transactionID`, metadata?.get('transactionID'));
+
+    console.log(`metadata.salesMetadata`, metadata?.get('salesMetadata'));
+    console.log(`metadata.recallMetadata`, metadata?.get('recallMetadata'));
+    console.log(`metadata.transferMetadata`, metadata?.get('transferMetadata'));
+    console.log(`metadata.topUpMetadata`, metadata?.get('topUpMetadata'));
+    console.log(`metadata.cashOutMetadata`, metadata?.get('cashOutMetadata'));
+
+    const salesMetadata = metadata?.get('salesMetadata') || undefined;
+    const recallMetadata = metadata?.get('recallMetadata') || undefined;
+    const transferMetadata = metadata?.get('transferMetadata') || undefined;
+    const topUpMetadata = metadata?.get('topUpMetadata') || undefined;
+    const cashOutMetadata = metadata?.get('cashOutMetadata') || undefined;
+
+    const tx: Transaction_Quantum = {
+        // base info
+        id: (result.get('id')?.stringValue() || '') as TransactionID,
+        title: result.get('title')?.stringValue() || '',
+        note: result.get('note')?.stringValue() || '',
+        createdAt: new Date((result.get('createdAt')?.dateValue() || '0') as string),
+        // foriegn keys
+        sendingWallet: (result.get('sendingWallet')?.stringValue() || '') as WalletAliasID,
+        recievingWallet: (result.get('recievingWallet')?.stringValue() || '') as WalletAliasID, // escrow wallet
+        purchaseManifestID: (result.get('purchaseManifestID')?.stringValue() || '') as PurchaseMainfestID,
+        // archive log with pov (may include future creditors such as club boss)
+        explanations,
+        // transaction details
+        amount: (result.get('amount')?.numberValue() || 0) as number,
+        type: (result.get('type')?.stringValue() || '') as TransactionType,
+        attribution: (result.get('attribution')?.stringValue() || '') as UserRelationshipHash,
+        gotRecalled: (result.get('gotRecalled')?.booleanValue() || false) as boolean, // recalled means the money returned to sender
+        gotCashedOut: (result.get('gotCashedOut')?.booleanValue() || false) as boolean, // cashed out means the money was withdrawn from escrow
+        recallTransactionID: (result.get('recallTransactionID')?.stringValue() || '') as TransactionID,
+        cashOutTransactionID: (result.get('cashOutTransactionID')?.stringValue() || '') as TransactionID,
+        metadata: {
+            transactionID: (metadata?.get('transactionID') || '') as TransactionID,
+            salesMetadata: salesMetadata
+                ? {
+                      buyerNote: salesMetadata?.get('buyerNote')?.stringValue() || '',
+                      promoCode: salesMetadata?.get('promoCode')?.stringValue() || '',
+                      // deal details
+                      agreedCookiePrice: (salesMetadata?.get('agreedCookiePrice')?.numberValue() || 0) as number,
+                      originalCookiePrice: (salesMetadata?.get('originalCookiePrice')?.numberValue() || 0) as number,
+                      agreedBuyFrequency: (salesMetadata?.get('agreedBuyFrequency')?.stringValue() ||
+                          WishBuyFrequency.ONE_TIME) as WishBuyFrequency,
+                      originalBuyFrequency: (salesMetadata?.get('originalBuyFrequency')?.stringValue() ||
+                          WishBuyFrequency.ONE_TIME) as WishBuyFrequency,
+                  }
+                : undefined,
+            recallMetadata: recallMetadata
+                ? {
+                      originalTransactionID: (recallMetadata?.get('originalTransactionID')?.stringValue() ||
+                          '') as TransactionID,
+                      recallerWalletID: (recallMetadata?.get('recallerWalletID')?.stringValue() || '') as WalletAliasID,
+                      recallerNote: recallMetadata?.get('recallerNote')?.stringValue() || '',
+                  }
+                : undefined,
+            transferMetadata: transferMetadata
+                ? {
+                      senderNote: transferMetadata?.get('senderNote')?.stringValue() || '',
+                  }
+                : undefined,
+            topUpMetadata: topUpMetadata
+                ? {
+                      internalNote: topUpMetadata?.get('internalNote')?.stringValue() || '',
+                      promoCode: topUpMetadata?.get('promoCode')?.stringValue() || '',
+                  }
+                : undefined,
+            cashOutMetadata: cashOutMetadata
+                ? {
+                      initiatorWallet: (cashOutMetadata?.get('initiatorWallet')?.stringValue() || '') as WalletAliasID,
+                      cashoutCode: (cashOutMetadata?.get('cashoutCode')?.stringValue() || '') as string,
+                  }
+                : undefined,
+        },
+    };
     return tx;
 };
 
@@ -137,7 +256,7 @@ export const createWallet = async ({
                     };
                     console.log(`doc: ${JSON.stringify(doc)}`);
                     // Create a sample Ion doc
-                    const ionDoc = load(dumpBinary(doc));
+                    const ionDoc = load(dumpText(doc));
                     console.log(`ionDoc: ${JSON.stringify(ionDoc)}`);
                     if (ionDoc !== null) {
                         const result = await txn.execute('INSERT INTO Wallets ?', ionDoc);
@@ -176,65 +295,87 @@ export const createWallet = async ({
     return p;
 };
 
-export const getWallet_QuantumLedger = async ({
-    walletAliasID,
-}: {
+export const getWallet_QuantumLedger = async (args: {
     walletAliasID: WalletAliasID;
 }): Promise<Wallet_Quantum | undefined> => {
     const p: Promise<Wallet_Quantum | undefined> = new Promise(async (res, rej) => {
         await qldbDriver.executeLambda(async (txn: TransactionExecutor) => {
-            const results = (
-                await txn.execute(`SELECT * FROM Wallets WHERE walletAliasID = '${walletAliasID}'`)
-            ).getResultList();
-            const matches = results.map((result) => {
-                const wallet = domValueWalletToTyped(result);
-                console.log(`Found wallet: ${JSON.stringify(wallet)}`);
-                return wallet;
-            });
-            const wallet = matches ? matches[0] : undefined;
+            const wallet = await _getWallet(args, txn);
             res(wallet);
         });
     });
     return p;
 };
 
-export const updateWallet_QuantumLedger = async ({
-    walletAliasID,
-    title,
-    note,
-}: {
+const _getWallet = async (
+    args: {
+        walletAliasID: WalletAliasID;
+    },
+    txn: TransactionExecutor,
+): Promise<Wallet_Quantum | undefined> => {
+    const { walletAliasID } = args;
+    const results = (
+        await txn.execute(`SELECT * FROM Wallets WHERE walletAliasID = '${walletAliasID}'`)
+    ).getResultList();
+    const matches = results.map((result) => {
+        const wallet = domValueWalletToTyped(result);
+        console.log(`Found wallet: ${JSON.stringify(wallet)}`);
+        return wallet;
+    });
+    const wallet = matches ? matches[0] : undefined;
+    return wallet;
+};
+
+export const updateWallet_QuantumLedger = async (args: {
     walletAliasID: WalletAliasID;
     title?: string;
     note?: string;
-}): Promise<Wallet_Quantum> => {
+}): Promise<Wallet_Quantum | undefined> => {
     console.log('updateWallet_QuantumLedger...');
-    const p: Promise<Wallet_Quantum> = new Promise((res, rej) => {
-        if (!title && !note) {
+    const p: Promise<Wallet_Quantum | undefined> = new Promise((res, rej) => {
+        const { walletAliasID, title, note } = args;
+        if (!walletAliasID || (!title && !note)) {
             rej();
         }
         qldbDriver.executeLambda(async (txn: TransactionExecutor) => {
-            const _title = title ? load(title) : null;
-            const _note = note ? load(note) : null;
-            console.log(`_title = ${_title} & _note = ${_note}`);
-            await txn.execute(
-                `
-                UPDATE Wallets SET
-                ${_title ? `title = '${title}',` : ''}
-                ${_note ? `note = '${note}'` : ''}
-                WHERE walletAliasID = '${walletAliasID}'
-              `,
-            );
-            console.log('Executed update query');
-            const resultSet = await txn.execute(`SELECT * FROM Wallets WHERE walletAliasID = ?`, walletAliasID);
-            console.log('Executed select query');
-            const updatedDocument = resultSet.getResultList()[0];
-            console.log(`Successfully updated document into table: ${JSON.stringify(updatedDocument)}`);
-            const wallet = domValueWalletToTyped(updatedDocument);
-            console.log('wallet', wallet);
+            const wallet = await _updateWallet(args, txn);
+            if (wallet === undefined) {
+                rej();
+            }
             res(wallet);
         });
     });
     return p;
+};
+
+const _updateWallet = async (
+    args: {
+        walletAliasID: WalletAliasID;
+        title?: string;
+        note?: string;
+    },
+    txn: TransactionExecutor,
+): Promise<Wallet_Quantum | undefined> => {
+    const { walletAliasID, title, note } = args;
+    const _title = title ? load(title) : null;
+    const _note = note ? load(note) : null;
+    console.log(`_title = ${_title} & _note = ${_note}`);
+    await txn.execute(
+        `
+      UPDATE Wallets SET
+      ${_title ? `title = '${title}',` : ''}
+      ${_note ? `note = '${note}'` : ''}
+      WHERE walletAliasID = '${walletAliasID}'
+    `,
+    );
+    console.log('Executed update query');
+    const resultSet = await txn.execute(`SELECT * FROM Wallets WHERE walletAliasID = ?`, walletAliasID);
+    console.log('Executed select query');
+    const updatedDocument = resultSet.getResultList()[0];
+    console.log(`Successfully updated document into table: ${JSON.stringify(updatedDocument)}`);
+    const wallet = domValueWalletToTyped(updatedDocument);
+    console.log('wallet', wallet);
+    return wallet;
 };
 
 export const createTransaction_QuantumLedger = async (
@@ -242,6 +383,32 @@ export const createTransaction_QuantumLedger = async (
 ): Promise<Transaction_Quantum> => {
     const p: Promise<Transaction_Quantum> = new Promise(async (res, rej) => {
         console.log('createTransactionQLDB...');
+        try {
+            await qldbDriver.executeLambda(async (txn: TransactionExecutor) => {
+                console.log('txn.executeLambda...');
+                const tx = await _createTransaction(args, txn);
+                console.log('tx', tx);
+                if (!tx) {
+                    rej(`Failed to create transaction: ${args.title}`);
+                    return;
+                }
+                res(tx);
+            });
+        } catch (e) {
+            console.log('post transaction error', e);
+            rej(e);
+        }
+    });
+    return p;
+};
+
+export const _createTransaction = async (
+    args: PostTransactionXCloudRequestBody,
+    txn: TransactionExecutor,
+): Promise<Transaction_Quantum> => {
+    const p: Promise<Transaction_Quantum> = new Promise(async (res, rej) => {
+        console.log('txn.executeLambda...');
+
         const amount = args.amount;
         const explainedAmount = args.explanations
             .filter((e) => e.amount > 0)
@@ -254,143 +421,374 @@ export const createTransaction_QuantumLedger = async (
             rej(
                 `amount ${amount} !== explainedAmount ${explainedAmount} !== deductedAmount ${deductedAmount}, vs netZeroAmount ${netZeroAmount}`,
             );
+            return;
         }
 
-        try {
-            const transaction = await qldbDriver.executeLambda(async (txn: TransactionExecutor) => {
-                console.log('txn.executeLambda...');
+        const [senderWalletQLDB, receiverWalletQLDB] = await Promise.all([
+            getWallet_QuantumLedger({
+                walletAliasID: args.senderWallet,
+            }),
+            getWallet_QuantumLedger({
+                walletAliasID: args.receiverWallet,
+            }),
+        ]);
 
-                const [senderWalletQLDB, receiverWalletQLDB] = await Promise.all([
-                    getWallet_QuantumLedger({
-                        walletAliasID: args.senderWallet,
-                    }),
-                    getWallet_QuantumLedger({
-                        walletAliasID: args.receiverWallet,
-                    }),
-                ]);
+        if (!senderWalletQLDB) {
+            console.log(`yourWallet is null`);
+            rej(`yourWallet is null`);
+            return;
+        }
+        if (senderWalletQLDB.balance < amount) {
+            rej('You do not have enough money');
+            return;
+        }
+        if (!receiverWalletQLDB) {
+            console.log(`receiverWalletQLDB is null`);
+            rej(`receiverWalletQLDB is null`);
+            return;
+        }
 
-                if (!senderWalletQLDB) {
-                    console.log(`yourWallet is null`);
-                    rej(`yourWallet is null`);
-                    return;
-                }
-                if (senderWalletQLDB.balance < amount) {
-                    rej('You do not have enough money');
-                    return;
-                }
-                if (!receiverWalletQLDB) {
-                    console.log(`receiverWalletQLDB is null`);
-                    rej(`receiverWalletQLDB is null`);
-                    return;
-                }
+        const senderWalletUpdatedBalance = parseFloat(`${senderWalletQLDB.balance}`) - parseFloat(`${amount}`);
+        const receiverWalletUpdatedBalance = parseFloat(`${receiverWalletQLDB.balance}`) + parseFloat(`${amount}`);
 
-                const senderWalletUpdatedBalance = parseFloat(`${senderWalletQLDB.balance}`) - parseFloat(`${amount}`);
-                const receiverWalletUpdatedBalance =
-                    parseFloat(`${receiverWalletQLDB.balance}`) + parseFloat(`${amount}`);
-
-                const txType = args.type;
-                const id = uuidv4() as TransactionID;
-                console.log(`id: ${id}`);
-                const now = new Date();
-                const transactionMetadata: TransactionMetadata = {
-                    transactionID: id,
+        const txType = args.type;
+        const id = uuidv4() as TransactionID;
+        console.log(`id: ${id}`);
+        const now = new Date();
+        const transactionMetadata: TransactionMetadata = {
+            transactionID: id,
+        };
+        if (txType === TransactionType.DEAL && args.salesMetadata) {
+            transactionMetadata.salesMetadata = args.salesMetadata;
+        }
+        if (txType === TransactionType.TOP_UP && args.topUpMetadata) {
+            transactionMetadata.topUpMetadata = args.topUpMetadata;
+        }
+        if (txType === TransactionType.TRANSFER && args.transferMetadata) {
+            transactionMetadata.transferMetadata = args.transferMetadata;
+        }
+        const explanations = args.explanations.reduce(
+            (acc, curr) => {
+                return {
+                    ...acc,
+                    [curr.walletAliasID]: curr,
                 };
-                if (txType === TransactionType.DEAL && args.dealMetadata) {
-                    transactionMetadata.dealMetadata = args.dealMetadata;
+            },
+            {} as Record<
+                WalletAliasID,
+                {
+                    walletAliasID: WalletAliasID;
+                    explanation: string;
+                    amount: number;
                 }
-                if (txType === TransactionType.TOP_UP && args.topUpMetadata) {
-                    transactionMetadata.topUpMetadata = args.topUpMetadata;
-                }
-                if (txType === TransactionType.TRANSFER && args.transferMetadata) {
-                    transactionMetadata.transferMetadata = args.transferMetadata;
-                }
-                const explanations = args.explanations.reduce(
-                    (acc, curr) => {
-                        return {
-                            ...acc,
-                            [curr.walletAliasID]: curr,
-                        };
+            >,
+        );
+        const doc: Partial<Transaction_Quantum> = {
+            // base info
+            id,
+            title: args.title,
+            note: args.note,
+            createdAt: now,
+            // foriegn keys
+            sendingWallet: args.senderWallet,
+            recievingWallet: args.receiverWallet, // escrow wallet
+            purchaseManifestID: args.purchaseManifestID,
+            // archive log with pov (may include future creditors such as club boss)
+            explanations,
+            amount: args.amount,
+            type: args.type,
+            attribution: args.attribution,
+            gotRecalled: args.gotRecalled ? args.gotRecalled : false,
+            gotCashedOut: false,
+            metadata: transactionMetadata,
+        };
+        console.log(`doc: ${JSON.stringify(doc)}`);
+        // Create a sample Ion doc
+        try {
+            const bd = dumpText(doc);
+            console.log(`bd: ${bd}`);
+            const ionDoc = load(bd);
+            console.log(`ionDoc: ${JSON.stringify(ionDoc)}`);
+            if (ionDoc !== null) {
+                const result = await txn.execute('INSERT INTO Transactions ?', ionDoc);
+                console.log('result', result);
+                const documentId = result.getResultList()[0].get('documentId');
+                console.log(`documentId: ${documentId}`);
+                const resultSet = await txn.execute(
+                    `SELECT * FROM Transactions AS w BY docId WHERE docId = ?`,
+                    documentId,
+                );
+                const insertedDocument = resultSet.getResultList()[0];
+                console.log(`insertedDocument: ${JSON.stringify(insertedDocument)}`);
+                const tx = domValueTransactionToTyped(insertedDocument);
+                console.log(`Successfully inserted document<Transaction> into table: ${JSON.stringify(tx)}`);
+                await txn.execute(
+                    `
+            UPDATE Wallets SET
+            balance = ${senderWalletUpdatedBalance}
+            WHERE walletAliasID = '${args.senderWallet}'
+          `,
+                );
+                console.log(`Successfully updated sender wallet balance to ${senderWalletUpdatedBalance}`);
+                await txn.execute(
+                    `
+              UPDATE Wallets SET
+              balance = ${receiverWalletUpdatedBalance}
+              WHERE walletAliasID = '${args.receiverWallet}'
+          `,
+                );
+                console.log(`Successfully updated receiver wallet balance to ${receiverWalletUpdatedBalance}`);
+                res(tx);
+                return tx;
+            } else {
+                throw Error('ionDoc is null');
+            }
+        } catch (e) {
+            console.log(e);
+            console.log(`--- big error`);
+        }
+    });
+    return p;
+};
+
+export const getTransaction_QuantumLedger = async (args: {
+    transactionID: TransactionID;
+}): Promise<Transaction_Quantum | undefined> => {
+    const p: Promise<Transaction_Quantum | undefined> = new Promise(async (res, rej) => {
+        await qldbDriver.executeLambda(async (txn: TransactionExecutor) => {
+            const tx = await _getTransaction(args, txn);
+            res(tx);
+        });
+    });
+    return p;
+};
+
+export const _getTransaction = async (
+    args: {
+        transactionID: TransactionID;
+    },
+    txn: TransactionExecutor,
+) => {
+    const results = (
+        await txn.execute(`SELECT * FROM Transactions WHERE id = '${args.transactionID}'`)
+    ).getResultList();
+    const matches = results.map((result) => {
+        const tx = domValueTransactionToTyped(result);
+        console.log(`typeof tx = ${typeof tx}`);
+        return tx;
+    });
+    const tx = matches ? matches[0] : undefined;
+    console.log(`typeof tx >> ${typeof tx}`);
+    console.log(`tx >> ${tx}`);
+    return tx;
+};
+
+// this will not check for recall expiry date, as that logic assumed to be handled by the caller
+export const recallTransaction_QuantumLedger = async (args: RecallTransactionXCloudRequestBody) => {
+    const p: Promise<Transaction_Quantum> = new Promise(async (res, rej) => {
+        console.log('recallTransactionQLDB...');
+
+        // assume recallable
+        try {
+            await qldbDriver.executeLambda(async (txn: TransactionExecutor) => {
+                const tx = await _getTransaction(
+                    {
+                        transactionID: args.transactionID,
                     },
-                    {} as Record<
-                        WalletAliasID,
-                        {
+                    txn,
+                );
+                console.log(`looking at tx`, tx);
+                console.log(`typeof tx`, typeof tx);
+                if (!tx) {
+                    console.log(`Not Found tx=${args.transactionID}`);
+                    rej(`Not Found tx=${args.transactionID}`);
+                    return;
+                }
+                console.log(`tx.recievingWallet`, tx.recievingWallet);
+                if (!checkIfEscrowWallet(tx.recievingWallet)) {
+                    console.log(`Cannot use recall a non-escrow wallet. tx=${args.transactionID}`);
+                    rej(`Cannot use recall a non-escrow wallet. tx=${args.transactionID}`);
+                    return;
+                }
+                if (tx.gotRecalled) {
+                    console.log(`Already reverted tx=${args.transactionID}`);
+                    rej(`Already reverted tx=${args.transactionID}`);
+                    return;
+                }
+                if (tx.gotCashedOut) {
+                    console.log(`Already redeemed tx=${args.transactionID}`);
+                    rej(`Already redeemed tx=${args.transactionID}`);
+                    return;
+                }
+                console.log(`
+              
+              tx.sendingWallet !== args.recallerWalletID = ${tx.sendingWallet !== args.recallerWalletID}
+              ||
+              tx.recievingWallet !== args.recallerWalletID = ${tx.recievingWallet !== args.recallerWalletID}
+              
+              `);
+                console.log(`
+              
+              tx.sendingWallet = ${tx.sendingWallet}
+              args.recallerWalletID = ${args.recallerWalletID}
+              tx.recievingWallet = ${tx.recievingWallet}
+              args.recallerWalletID = ${args.recallerWalletID}
+              
+              `);
+                if (tx.sendingWallet !== args.recallerWalletID && tx.recievingWallet !== args.recallerWalletID) {
+                    console.log(`Only the sender or receiver can recall a transaction. tx=${args.transactionID}`);
+                    rej(`Only the sender or receiver can recall a transaction. tx=${args.transactionID}`);
+                    return;
+                }
+                const recallTxData: PostTransactionXCloudRequestBody = {
+                    title: `Recall: "${tx.title}"`,
+                    note: `Recall: "${tx.note}"`,
+                    purchaseManifestID: tx.purchaseManifestID,
+                    attribution: tx.attribution,
+                    type: TransactionType.RECALL,
+                    amount: tx.amount,
+                    senderWallet: tx.recievingWallet,
+                    receiverWallet: tx.sendingWallet,
+                    explanations: Object.values(tx.explanations).map((ex) => {
+                        const e = ex as unknown as {
                             walletAliasID: WalletAliasID;
                             explanation: string;
                             amount: number;
-                        }
-                    >,
-                );
-                const doc: Partial<Transaction_Quantum> = {
-                    // base info
-                    id,
-                    title: args.title,
-                    note: args.note,
-                    createdAt: now,
-                    // foriegn keys
-                    sendingWallet: args.senderWallet,
-                    recievingWallet: args.receiverWallet, // escrow wallet
-                    purchaseManifestID: args.purchaseManifestID,
-                    // archive log with pov (may include future creditors such as club boss)
-                    explanations,
-                    amount: args.amount,
-                    type: args.type,
-                    attribution: args.attribution,
-                    gotReverted: false,
-                    metadata: transactionMetadata,
+                        };
+                        return {
+                            ...e,
+                            explanation: `Got Recalled: ${e.explanation}`,
+                            amount: e.amount * -1,
+                        };
+                    }),
+                    gotRecalled: true,
+                    recallMetadata: {
+                        originalTransactionID: tx.id,
+                        recallerWalletID: args.recallerWalletID,
+                        recallerNote: args.recallerNote,
+                    },
                 };
-                console.log(`doc: ${JSON.stringify(doc)}`);
-                // Create a sample Ion doc
-                try {
-                    const bd = dumpBinary(doc);
-                    console.log(`bd: ${bd}`);
-                    const ionDoc = load(bd);
-                    console.log(`ionDoc: ${JSON.stringify(ionDoc)}`);
-                    if (ionDoc !== null) {
-                        const result = await txn.execute('INSERT INTO Transactions ?', ionDoc);
-                        console.log('result', result);
-                        const documentId = result.getResultList()[0].get('documentId');
-                        console.log(`documentId: ${documentId}`);
-                        const resultSet = await txn.execute(
-                            `SELECT * FROM Transactions AS w BY docId WHERE docId = ?`,
-                            documentId,
-                        );
-                        const insertedDocument = resultSet.getResultList()[0];
-                        console.log(`insertedDocument: ${JSON.stringify(insertedDocument)}`);
-                        const tx = domValueTransactionToTyped(insertedDocument);
-                        console.log(`Successfully inserted document<Transaction> into table: ${JSON.stringify(tx)}`);
-                        await txn.execute(
-                            `
-                          UPDATE Wallets SET
-                          balance = '${senderWalletUpdatedBalance}'
-                          WHERE walletAliasID = '${args.senderWallet}'
-                        `,
-                        );
-                        console.log(`Successfully updated sender wallet balance to ${senderWalletUpdatedBalance}`);
-                        await txn.execute(
-                            `
-                            UPDATE Wallets SET
-                            balance = '${receiverWalletUpdatedBalance}'
-                            WHERE walletAliasID = '${args.receiverWallet}'
-                        `,
-                        );
-                        console.log(`Successfully updated receiver wallet balance to ${receiverWalletUpdatedBalance}`);
-                        return tx;
-                    } else {
-                        throw Error('ionDoc is null');
-                    }
-                } catch (e) {
-                    console.log(e);
-                    console.log(`--- big error`);
+                console.log(`recallTxData`, recallTxData);
+                const recall_Tx = await _createTransaction(recallTxData, txn);
+                console.log(`recall_Tx`, recall_Tx);
+                if (!recall_Tx) {
+                    rej(`Failed to create recall for transaction tx=${args.transactionID}`);
+                    return;
                 }
+                const updatedTx = await txn.execute(
+                    `
+                      UPDATE Transactions SET
+                      gotRecalled = true,
+                      recallTransactionID = '${recall_Tx.id}'
+                      WHERE id = '${tx.id}'
+                    `,
+                );
+                console.log('updatedTx', updatedTx);
+                console.log('Executed update query');
+                const resultSet = await txn.execute(`SELECT * FROM Transactions WHERE id = ?`, recall_Tx.id);
+                console.log('Executed select query');
+                const recallDoc = resultSet.getResultList()[0];
+                console.log(`Successfully updated document into table: ${JSON.stringify(recallDoc)}`);
+                const rtx = domValueTransactionToTyped(recallDoc);
+                console.log('rtx', rtx);
+                res(rtx);
             });
-            if (transaction) {
-                res(transaction);
-            } else {
-                console.log('transaction', transaction);
-                rej('transaction is null');
-            }
         } catch (e) {
-            console.log('post transaction error', e);
+            console.log('recall transaction error', e);
+            rej(e);
+        }
+    });
+    return p;
+};
+
+// this will not check for recall expiry date, as that logic assumed to be handled by the caller
+export const cashOutTransaction_QuantumLedger = async (args: CashOutXCloudRequestBody) => {
+    const p: Promise<Transaction_Quantum> = new Promise(async (res, rej) => {
+        console.log('cashOutTransaction...');
+
+        // assume recallable
+        try {
+            await qldbDriver.executeLambda(async (txn: TransactionExecutor) => {
+                const tx = await _getTransaction(
+                    {
+                        transactionID: args.transactionID,
+                    },
+                    txn,
+                );
+                console.log(`looking at tx`, tx);
+                if (!tx) {
+                    console.log(`Not Found tx=${args.transactionID}`);
+                    rej(`Not Found tx=${args.transactionID}`);
+                    return;
+                }
+                if (!checkIfEscrowWallet(tx.recievingWallet)) {
+                    console.log(`Cannot use cash out a non-escrow wallet. tx=${args.transactionID}`);
+                    rej(`Cannot use cash out a non-escrow wallet. tx=${args.transactionID}`);
+                    return;
+                }
+                if (tx.gotRecalled) {
+                    console.log(`Already reverted tx=${args.transactionID}`);
+                    rej(`Already reverted tx=${args.transactionID}`);
+                    return;
+                }
+                if (tx.gotCashedOut) {
+                    console.log(`Already redeemed tx=${args.transactionID}`);
+                    rej(`Already redeemed tx=${args.transactionID}`);
+                    return;
+                }
+                const recallTxData: PostTransactionXCloudRequestBody = {
+                    title: `Cash Out: "${tx.title}"`,
+                    note: `Cash Out: "${tx.note}"`,
+                    purchaseManifestID: tx.purchaseManifestID,
+                    attribution: tx.attribution,
+                    type: TransactionType.RECALL,
+                    amount: tx.amount,
+                    senderWallet: tx.recievingWallet,
+                    receiverWallet: tx.sendingWallet,
+                    explanations: Object.values(tx.explanations).map((ex) => {
+                        const e = ex as unknown as {
+                            walletAliasID: WalletAliasID;
+                            explanation: string;
+                            amount: number;
+                        };
+                        return {
+                            ...e,
+                            explanation: `Got Recalled: ${e.explanation}`,
+                            amount: e.amount * -1,
+                        };
+                    }),
+                    cashOutMetadata: {
+                        initiatorWallet: args.initiatorWallet,
+                        cashoutCode: args.cashoutCode,
+                    },
+                };
+                console.log(`recallTxData`, recallTxData);
+                const recall_Tx = await _createTransaction(recallTxData, txn);
+                console.log(`recall_Tx`, recall_Tx);
+                if (!recall_Tx) {
+                    rej(`Failed to create recall for transaction tx=${args.transactionID}`);
+                    return;
+                }
+                const updatedTx = await txn.execute(
+                    `
+                    UPDATE Transactions SET
+                    gotRecalled = true,
+                    cashOutTransactionID = '${recall_Tx.id}'
+                    WHERE id = '${tx.id}'
+                  `,
+                );
+                console.log('updatedTx', updatedTx);
+                console.log('Executed update query');
+                const resultSet = await txn.execute(`SELECT * FROM Transactions WHERE id = ?`, recall_Tx.id);
+                console.log('Executed select query');
+                const recallDoc = resultSet.getResultList()[0];
+                console.log(`Successfully updated document into table: ${JSON.stringify(recallDoc)}`);
+                const rtx = domValueTransactionToTyped(recallDoc);
+                console.log('rtx', rtx);
+                res(rtx);
+            });
+        } catch (e) {
+            console.log('recall transaction error', e);
             rej(e);
         }
     });
