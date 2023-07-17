@@ -525,7 +525,8 @@ export const _createTransaction = async (
                 await txn.execute(
                     `
             UPDATE Wallets SET
-            balance = ${senderWalletUpdatedBalance}
+            balance = ${senderWalletUpdatedBalance},
+            mostRecentTransactionID = '${tx.id}'
             WHERE walletAliasID = '${args.senderWallet}'
           `,
                 );
@@ -533,7 +534,8 @@ export const _createTransaction = async (
                 await txn.execute(
                     `
               UPDATE Wallets SET
-              balance = ${receiverWalletUpdatedBalance}
+              balance = ${receiverWalletUpdatedBalance},
+              mostRecentTransactionID = '${tx.id}'
               WHERE walletAliasID = '${args.receiverWallet}'
           `,
                 );
