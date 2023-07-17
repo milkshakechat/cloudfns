@@ -7,7 +7,6 @@ import {
   UserID,
   User_Firestore,
   Username,
-  WalletID,
   defaultThemeColorHex,
   genderEnum,
   localeEnum,
