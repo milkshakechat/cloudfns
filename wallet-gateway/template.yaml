@@ -11,10 +11,10 @@ Globals:
     Timeout: 300
     MemorySize: 512
     Tracing: Active
-    Environment:
-      Variables: 
-        WALLET_GATEWAY_BASE64_KEY: 'template' # // the right way to do this is using secretsmanager
-        GCP_KEYFILE_BASE64: 'template' # !Sub '{{resolve:secretsmanager:MySecretName:SecretString:MySecretKey}}'
+    # Environment:
+    #   Variables: 
+    #     WALLET_GATEWAY_BASE64_KEY: 'template' # // the right way to do this is using secretsmanager
+    #     GCP_KEYFILE_BASE64: 'template' # !Sub '{{resolve:secretsmanager:MySecretName:SecretString:MySecretKey}}'
   Api:
     TracingEnabled: true
 Resources:
