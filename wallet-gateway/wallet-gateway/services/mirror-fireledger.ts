@@ -7,6 +7,7 @@ import {
     Tx_MirrorFireLedger,
     UserID,
     WalletAliasID,
+    WalletType,
     Wallet_MirrorFireLedger,
     getMirrorTransactionID,
 } from '@milkshakechat/helpers';
@@ -24,11 +25,13 @@ export const CreateMirrorWallet_Fireledger = async ({
     balance,
     walletAliasID,
     userID,
+    type,
 }: {
     title: string;
     balance: number;
     walletAliasID: WalletAliasID; // index
     userID: UserID;
+    type: WalletType;
 }): Promise<Wallet_MirrorFireLedger> => {
     const mirror: Wallet_MirrorFireLedger = {
         id: walletAliasID,
@@ -36,6 +39,7 @@ export const CreateMirrorWallet_Fireledger = async ({
         balance: balance,
         walletAliasID: walletAliasID,
         ownerID: userID,
+        type,
     };
     const wallet = await createFirestoreDoc<WalletAliasID, Wallet_MirrorFireLedger>({
         id: walletAliasID,

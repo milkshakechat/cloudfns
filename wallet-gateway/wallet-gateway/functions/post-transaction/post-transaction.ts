@@ -1,5 +1,5 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { PostTransactionXCloudRequestBody, checkIfTradingWallet } from '@milkshakechat/helpers';
+import { PostTransactionXCloudRequestBody, checkIfTradingWallet, checkIfStoreWallet } from '@milkshakechat/helpers';
 import {
     createTransaction_QuantumLedger as createTransactionQLDB,
     initQuantumLedger_Drivers,
@@ -44,11 +44,11 @@ export const postTransaction = async (event: APIGatewayProxyEvent): Promise<APIG
                 }),
             };
         }
-        if (!checkIfTradingWallet(body.senderWallet)) {
+        if (!checkIfTradingWallet(body.senderWallet) && !checkIfStoreWallet(body.senderWallet)) {
             return {
                 statusCode: 400,
                 body: JSON.stringify({
-                    message: 'You can only spend money from a trading wallet',
+                    message: 'Only trading wallets or stores can post transactions',
                 }),
             };
         }

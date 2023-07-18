@@ -51,23 +51,24 @@ export const createWallet = async (event: APIGatewayProxyEvent): Promise<APIGate
         console.log('body', body);
         const { userID, title, note, type, walletAliasID } = body;
         console.log('userID', userID);
-        const tradingWallet = await createWalletQLDB({
+        const wallet = await createWalletQLDB({
             walletAliasID,
             userID,
             title,
             note,
             type,
         });
-        console.log(`tradingWallet`, tradingWallet);
+        console.log(`wallet`, wallet);
         console.log('finally lets mirror');
         const mirror = await CreateMirrorWallet_Fireledger({
             title,
-            balance: tradingWallet.balance,
+            balance: wallet.balance,
             walletAliasID,
             userID,
+            type: wallet.type,
         });
         console.log(`mirror`, mirror);
-        if (!tradingWallet) {
+        if (!wallet) {
             return {
                 statusCode: 500,
                 body: JSON.stringify({
@@ -78,8 +79,8 @@ export const createWallet = async (event: APIGatewayProxyEvent): Promise<APIGate
         const resp = {
             statusCode: 200,
             body: JSON.stringify({
-                message: `Successfully created wallet=${tradingWallet.id} for user=${userID}`,
-                wallet: tradingWallet,
+                message: `Successfully created wallet=${wallet.id} for user=${userID}`,
+                wallet,
             }),
         };
         return resp;
