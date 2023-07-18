@@ -166,7 +166,7 @@ export const domValueTransactionToTyped = (result: dom.Value) => {
         // foriegn keys
         sendingWallet: (result.get('sendingWallet')?.stringValue() || '') as WalletAliasID,
         recievingWallet: (result.get('recievingWallet')?.stringValue() || '') as WalletAliasID, // escrow wallet
-        purchaseManifestID: (result.get('purchaseManifestID')?.stringValue() || '') as PurchaseMainfestID,
+        purchaseManifestID: (result.get('purchaseManifestID')?.stringValue() || undefined) as PurchaseMainfestID,
         // archive log with pov (may include future creditors such as club boss)
         explanations,
         // transaction details
@@ -406,8 +406,8 @@ export const createTransaction_QuantumLedger = async (
             await qldbDriver.executeLambda(async (txn: TransactionExecutor) => {
                 console.log('txn.executeLambda...');
                 const tx = await _createTransaction(args, txn, {
-                    receiverOwnerID: senderWalletMirror.ownerID,
-                    senderOwnerID: receiverWalletMirror.ownerID,
+                    receiverOwnerID: receiverWalletMirror.ownerID,
+                    senderOwnerID: senderWalletMirror.ownerID,
                 });
                 console.log('tx', tx);
                 if (!tx) {
@@ -515,7 +515,6 @@ export const _createTransaction = async (
             // foriegn keys
             sendingWallet: args.senderWallet,
             recievingWallet: args.receiverWallet, // escrow wallet
-            purchaseManifestID: args.purchaseManifestID,
             // archive log with pov (may include future creditors such as club boss)
             explanations,
             amount: args.amount,
@@ -525,6 +524,9 @@ export const _createTransaction = async (
             gotCashedOut: false,
             metadata: transactionMetadata,
         };
+        if (args.purchaseManifestID) {
+            doc.purchaseManifestID = args.purchaseManifestID;
+        }
         console.log(`doc: ${JSON.stringify(doc)}`);
         // Create a sample Ion doc
         try {
@@ -587,7 +589,9 @@ export const _createTransaction = async (
                         recievingWallet: args.receiverWallet,
                         walletAliasID: args.receiverWallet,
                         amount: args.amount,
-                        note: explanations[args.senderWallet] ? explanations[args.senderWallet].explanation || '' : '',
+                        note: explanations[args.receiverWallet]
+                            ? explanations[args.receiverWallet].explanation || ''
+                            : '',
                         type: args.type,
                         senderUserID: senderOwnerID,
                         recieverUserID: receiverOwnerID,

@@ -31,7 +31,7 @@ async function accessSecretVersionAWS({
   });
   const name = `projects/${projectId}/secrets/${secretId}/versions/${versionId}`;
 
-  const [response] = await client.accessSecretVersionAWS({ name });
+  const [response] = await client.accessSecretVersion({ name });
 
   const secretValue = response.payload?.data?.toString();
   if (!secretValue) {
