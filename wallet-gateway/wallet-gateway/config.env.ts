@@ -1,6 +1,9 @@
-import { WalletAliasID } from '@milkshakechat/helpers';
+import { SecretConfig, WalletAliasID } from '@milkshakechat/helpers';
 
 const devConfig: ConfigEnv = {
+    GCLOUD: {
+        projectId: 'milkshake-dev-faf77',
+    },
     WALLET_GATEWAY: {
         region: 'ap-northeast-1',
         functions: {
@@ -15,6 +18,10 @@ const devConfig: ConfigEnv = {
     SECRETS: {
         WALLET_GATEWAY_XCLOUD_GCP: {
             SecretId: 'xcloud-wallet-gateway-gcp-to-aws/dev',
+        },
+        FIREBASE_CONFIG: {
+            secretId: 'firebase-init',
+            versionId: 'latest',
         },
     },
     LEDGER: {
@@ -29,6 +36,9 @@ const devConfig: ConfigEnv = {
 };
 
 const stagingConfig: ConfigEnv = {
+    GCLOUD: {
+        projectId: 'milkshake-dev-faf77',
+    },
     WALLET_GATEWAY: {
         region: 'ap-northeast-1',
         functions: {
@@ -43,6 +53,10 @@ const stagingConfig: ConfigEnv = {
     SECRETS: {
         WALLET_GATEWAY_XCLOUD_GCP: {
             SecretId: 'xcloud-wallet-gateway-gcp-to-aws/dev',
+        },
+        FIREBASE_CONFIG: {
+            secretId: 'firebase-init',
+            versionId: 'latest',
         },
     },
     LEDGER: {
@@ -57,6 +71,9 @@ const stagingConfig: ConfigEnv = {
 };
 
 const prodConfig: ConfigEnv = {
+    GCLOUD: {
+        projectId: 'milkshake-dev-faf77',
+    },
     WALLET_GATEWAY: {
         region: 'ap-northeast-1',
         functions: {
@@ -71,6 +88,10 @@ const prodConfig: ConfigEnv = {
     SECRETS: {
         WALLET_GATEWAY_XCLOUD_GCP: {
             SecretId: 'xcloud-wallet-gateway-gcp-to-aws/dev',
+        },
+        FIREBASE_CONFIG: {
+            secretId: 'firebase-init',
+            versionId: 'latest',
         },
     },
     LEDGER: {
@@ -102,6 +123,10 @@ interface ConfigEnv {
     };
     SECRETS: {
         WALLET_GATEWAY_XCLOUD_GCP: SecretConfigAWS;
+        FIREBASE_CONFIG: SecretConfig;
+    };
+    GCLOUD: {
+        projectId: string;
     };
     LEDGER: {
         region: string;

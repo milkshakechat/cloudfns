@@ -1,6 +1,16 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { CreateWalletXCloudRequestBody, UserID, WalletType } from '@milkshakechat/helpers';
+import {
+    CreateWalletXCloudRequestBody,
+    FirestoreCollection,
+    UserID,
+    WalletAliasID,
+    WalletType,
+    Wallet_MirrorFireLedger,
+} from '@milkshakechat/helpers';
 import { createWallet as createWalletQLDB, initQuantumLedger_Drivers } from '../../services/ledger';
+import { firestore, initFirebase } from '../../services/firebase';
+import { CreateMirrorWallet_Fireledger } from '../../services/mirror-fireledger';
+import { createFirestoreDoc } from '../../services/firestore';
 
 /**
  *
@@ -14,6 +24,10 @@ import { createWallet as createWalletQLDB, initQuantumLedger_Drivers } from '../
 
 export const createWallet = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     console.log('createWallet');
+    console.log('going...');
+    // console.log(`process.env.GCP_KEYFILE_BASE64`, process.env.GCP_KEYFILE_BASE64);
+    // console.log(`process.env.WALLET_GATEWAY_BASE64_KEY`, process.env.WALLET_GATEWAY_BASE64_KEY);
+    await initFirebase();
     console.log('-------- event -------');
     console.log(event);
     console.log('-------- event -------');
@@ -27,7 +41,12 @@ export const createWallet = async (event: APIGatewayProxyEvent): Promise<APIGate
         };
     }
     console.log('createWallet...');
+    console.log(`can it get past here...`);
     try {
+        console.log(`Anything at all`);
+        console.log(`event.body = `);
+        console.log(JSON.stringify(event.body));
+        console.log(`typeof event.body`, typeof event.body);
         const body = JSON.parse(event.body) as CreateWalletXCloudRequestBody;
         console.log('body', body);
         const { userID, title, note, type, walletAliasID } = body;
@@ -40,6 +59,14 @@ export const createWallet = async (event: APIGatewayProxyEvent): Promise<APIGate
             type,
         });
         console.log(`tradingWallet`, tradingWallet);
+        console.log('finally lets mirror');
+        const mirror = await CreateMirrorWallet_Fireledger({
+            title,
+            balance: tradingWallet.balance,
+            walletAliasID,
+            userID,
+        });
+        console.log(`mirror`, mirror);
         if (!tradingWallet) {
             return {
                 statusCode: 500,

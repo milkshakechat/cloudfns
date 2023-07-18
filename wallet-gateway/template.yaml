@@ -9,11 +9,12 @@ Description: >
 Globals:
   Function:
     Timeout: 300
+    MemorySize: 512
     Tracing: Active
     # Environment:
-      # Variables:
-        # WALLET_GATEWAY_BASE64_KEY: '' // the right way to do this is using secretsmanager
-        # MY_SECRET: !Sub '{{resolve:secretsmanager:MySecretName:SecretString:MySecretKey}}'
+    #   Variables:
+    #     WALLET_GATEWAY_BASE64_KEY: 'template' # // the right way to do this is using secretsmanager
+    #     GCP_KEYFILE_BASE64: 'template' # !Sub '{{resolve:secretsmanager:MySecretName:SecretString:MySecretKey}}'
   Api:
     TracingEnabled: true
 Resources:
@@ -33,6 +34,7 @@ Resources:
       CodeUri: wallet-gateway/
       Handler: app.walletAuthValidator
       Runtime: nodejs18.x
+      MemorySize: 512
       Architectures:
       - x86_64
     Metadata: # Manage esbuild properties
@@ -49,6 +51,7 @@ Resources:
       CodeUri: wallet-gateway/  # Your code folder for create wallet
       Handler: app.createWallet  # Your handler function for create wallet
       Runtime: nodejs18.x
+      MemorySize: 512
       Architectures:
       - x86_64
       Events:
@@ -72,6 +75,7 @@ Resources:
       CodeUri: wallet-gateway/  # Your code folder for create wallet
       Handler: app.getWallet  # Your handler function for create wallet
       Runtime: nodejs18.x
+      MemorySize: 512
       Architectures:
       - x86_64
       Events:
@@ -95,6 +99,7 @@ Resources:
       CodeUri: wallet-gateway/  # Your code folder for create wallet
       Handler: app.updateWallet  # Your handler function for create wallet
       Runtime: nodejs18.x
+      MemorySize: 512
       Architectures:
       - x86_64
       Events:
@@ -118,6 +123,7 @@ Resources:
       CodeUri: wallet-gateway/  # Your code folder for create wallet
       Handler: app.postTransaction  # Your handler function for create wallet
       Runtime: nodejs18.x
+      MemorySize: 512
       Architectures:
       - x86_64
       Events:
@@ -141,6 +147,7 @@ Resources:
       CodeUri: wallet-gateway/  # Your code folder for create wallet
       Handler: app.getTransaction  # Your handler function for create wallet
       Runtime: nodejs18.x
+      MemorySize: 512
       Architectures:
       - x86_64
       Events:
@@ -164,6 +171,7 @@ Resources:
       CodeUri: wallet-gateway/  # Your code folder for create wallet
       Handler: app.recallTransaction  # Your handler function for create wallet
       Runtime: nodejs18.x
+      MemorySize: 512
       Architectures:
       - x86_64
       Events:
@@ -187,6 +195,7 @@ Resources:
       CodeUri: wallet-gateway/  # Your code folder for create wallet
       Handler: app.cashOutTransaction  # Your handler function for create wallet
       Runtime: nodejs18.x
+      MemorySize: 512
       Architectures:
       - x86_64
       Events:

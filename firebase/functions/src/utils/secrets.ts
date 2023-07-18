@@ -4,7 +4,7 @@ import config from "../config.env";
 import * as dotenv from "dotenv";
 dotenv.config();
 
-async function accessSecretVersion({
+async function accessSecretVersionAWS({
   projectId,
   secretId,
   versionId,
@@ -31,7 +31,7 @@ async function accessSecretVersion({
   });
   const name = `projects/${projectId}/secrets/${secretId}/versions/${versionId}`;
 
-  const [response] = await client.accessSecretVersion({ name });
+  const [response] = await client.accessSecretVersionAWS({ name });
 
   const secretValue = response.payload?.data?.toString();
   if (!secretValue) {
@@ -50,7 +50,7 @@ export interface FirebaseConfig {
   measurementId: string;
 }
 export const getFirebaseConfig = async () => {
-  const firebaseConfig = await accessSecretVersion({
+  const firebaseConfig = await accessSecretVersionAWS({
     projectId: config.GCLOUD.projectId,
     secretId: config.SECRETS.FIREBASE_CONFIG.secretId,
     versionId: config.SECRETS.FIREBASE_CONFIG.versionId,
@@ -59,7 +59,7 @@ export const getFirebaseConfig = async () => {
 };
 
 export const getFCMServerKey = async () => {
-  const fcmServerKey = await accessSecretVersion({
+  const fcmServerKey = await accessSecretVersionAWS({
     projectId: config.GCLOUD.projectId,
     secretId: config.SECRETS.FCM_SERVER_KEY.secretId,
     versionId: config.SECRETS.FCM_SERVER_KEY.versionId,
@@ -78,7 +78,7 @@ export const accessLocalGCPKeyFile = async () => {
 };
 
 export const getStripeSecret = async () => {
-  const stripeSecret = await accessSecretVersion({
+  const stripeSecret = await accessSecretVersionAWS({
     projectId: config.GCLOUD.projectId,
     secretId: config.SECRETS.STRIPE_SERVER_KEY.secretId,
     versionId: config.SECRETS.STRIPE_SERVER_KEY.versionId,
@@ -87,7 +87,7 @@ export const getStripeSecret = async () => {
 };
 
 export const getCreateWalletXCloudAWSSecret = async () => {
-  const xcloudSecret = await accessSecretVersion({
+  const xcloudSecret = await accessSecretVersionAWS({
     projectId: config.GCLOUD.projectId,
     secretId: config.SECRETS.CREATE_WALLET_XCLOUD_AWS.secretId,
     versionId: config.SECRETS.CREATE_WALLET_XCLOUD_AWS.versionId,

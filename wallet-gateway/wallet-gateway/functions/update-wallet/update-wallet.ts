@@ -1,6 +1,8 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { UpdateWalletXCloudRequestBody, UserID, WalletType } from '@milkshakechat/helpers';
 import { updateWallet_QuantumLedger as updateWalletQLDB, initQuantumLedger_Drivers } from '../../services/ledger';
+import { UpdateMirrorWallet_Fireledger } from '../../services/mirror-fireledger';
+import { initFirebase } from '../../services/firebase';
 
 /**
  *
@@ -18,6 +20,8 @@ export const updateWallet = async (event: APIGatewayProxyEvent): Promise<APIGate
     console.log(event);
     console.log('-------- event -------');
     await initQuantumLedger_Drivers();
+    console.log('cache proof 4294820');
+    await initFirebase();
     if (!event.body) {
         return {
             statusCode: 400,
@@ -46,6 +50,11 @@ export const updateWallet = async (event: APIGatewayProxyEvent): Promise<APIGate
                 }),
             };
         }
+        const mirror = await UpdateMirrorWallet_Fireledger({
+            balance: wallet.balance,
+            walletAliasID,
+        });
+        console.log(`mirror`, mirror);
         const resp = {
             statusCode: 200,
             body: JSON.stringify({

@@ -4,6 +4,7 @@ import {
     recallTransaction_QuantumLedger as recallTransactionQLDB,
     initQuantumLedger_Drivers,
 } from '../../services/ledger';
+import { initFirebase } from '../../services/firebase';
 
 /**
  *
@@ -17,10 +18,12 @@ import {
 
 export const recallTransaction = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     console.log('recallTransaction');
+    await initFirebase();
     console.log('-------- event -------');
     console.log(event);
     console.log('-------- event -------');
     await initQuantumLedger_Drivers();
+    await initFirebase();
     if (!event.body) {
         return {
             statusCode: 400,

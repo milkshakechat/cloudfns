@@ -13,7 +13,6 @@ const initFirebase = async () => {
 };
 
 // Initialize Cloud Firestore and get a reference to the service
-
 export default (async () => {
   const firebaseApp = await initFirebase();
   const firestore = getFirestore(firebaseApp);

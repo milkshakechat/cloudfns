@@ -210,3 +210,4 @@ $RECYCLE.BIN/
 # other
 aws-cli-credentials.csv
 .env
+.env.json

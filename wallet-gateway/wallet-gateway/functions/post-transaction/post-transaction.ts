@@ -4,6 +4,7 @@ import {
     createTransaction_QuantumLedger as createTransactionQLDB,
     initQuantumLedger_Drivers,
 } from '../../services/ledger';
+import { initFirebase } from '../../services/firebase';
 
 /**
  *
@@ -17,10 +18,13 @@ import {
 
 export const postTransaction = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     console.log('postTransaction');
+    await initFirebase();
     console.log('-------- event -------');
     console.log(event);
     console.log('-------- event -------');
+    console.log(`cache proof 2499jsd`);
     await initQuantumLedger_Drivers();
+    await initFirebase();
     if (!event.body) {
         return {
             statusCode: 400,

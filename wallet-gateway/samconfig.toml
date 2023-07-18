@@ -46,3 +46,13 @@ profile = "local-developer-kangze"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
 image_repositories = []
+
+["wallet-gateway/.env.json".deploy.parameters]
+stack_name = "wallet-gateway"
+resolve_s3 = true
+s3_prefix = "wallet-gateway"
+region = "ap-northeast-1"
+profile = "local-developer-kangze"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+image_repositories = []
