@@ -7,6 +7,7 @@ import { QldbDriver, RetryConfig, TransactionExecutor } from 'amazon-qldb-driver
 import { NodeHttpHandlerOptions } from '@aws-sdk/node-http-handler';
 import {
     CashOutXCloudRequestBody,
+    FirestoreCollection,
     PostTransactionXCloudRequestBody,
     PurchaseMainfestID,
     RecallTransactionXCloudRequestBody,
@@ -22,12 +23,20 @@ import {
     WishBuyFrequency,
     checkIfEscrowWallet,
     getMainUserTradingWallet,
+    getMirrorTransactionID,
     getUserEscrowWallet,
 } from '@milkshakechat/helpers';
 import { v4 as uuidv4 } from 'uuid';
 import { dom, load, dumpBinary, dumpText } from 'ion-js';
 import { sleep } from '../utils/utils';
 import { WalletAliasID } from '@milkshakechat/helpers';
+import {
+    CreateMirrorTx_Fireledger,
+    GetMirrorWallet_Fireledger,
+    ListMirrorTx_Fireledger,
+    UpdateMirrorWallet_Fireledger,
+    UpdateTxWallet_Fireledger,
+} from './mirror-fireledger';
 
 /**
  * Use the qldbDriver to interact with ledgers
@@ -38,7 +47,7 @@ export let qldbDriver: QldbDriver;
 export const initQuantumLedger_Drivers = async () => {
     console.log('initQuantumLedger_Drivers...');
     const maxConcurrentTransactions = 10;
-    const retryLimit = 4;
+    const retryLimit = 5;
     //Reuse connections with keepAlive
     const lowLevelClientHttpOptions: NodeHttpHandlerOptions = {
         httpAgent: new Agent({
@@ -99,7 +108,7 @@ export const domValueWalletToTyped = (result: dom.Value) => {
         createdAt: new Date((result.get('createdAt')?.dateValue() || '0') as string),
         balance: (result.get('balance')?.numberValue() || 0) as number,
         type: (result.get('type')?.stringValue() || '') as WalletType,
-        isLocked: (result.get('isLocked')?.booleanValue || false) as boolean,
+        isLocked: (result.get('isLocked')?.booleanValue() || false) as boolean,
     };
     return wallet;
 };
@@ -206,6 +215,8 @@ export const domValueTransactionToTyped = (result: dom.Value) => {
                 ? {
                       initiatorWallet: (cashOutMetadata?.get('initiatorWallet')?.stringValue() || '') as WalletAliasID,
                       cashoutCode: (cashOutMetadata?.get('cashoutCode')?.stringValue() || '') as string,
+                      originalTransactionID: (cashOutMetadata?.get('originalTransactionID')?.stringValue() ||
+                          '') as TransactionID,
                   }
                 : undefined,
         },
@@ -383,10 +394,21 @@ export const createTransaction_QuantumLedger = async (
 ): Promise<Transaction_Quantum> => {
     const p: Promise<Transaction_Quantum> = new Promise(async (res, rej) => {
         console.log('createTransactionQLDB...');
+        const [senderWalletMirror, receiverWalletMirror] = await Promise.all([
+            GetMirrorWallet_Fireledger({
+                walletAliasID: args.senderWallet,
+            }),
+            GetMirrorWallet_Fireledger({
+                walletAliasID: args.receiverWallet,
+            }),
+        ]);
         try {
             await qldbDriver.executeLambda(async (txn: TransactionExecutor) => {
                 console.log('txn.executeLambda...');
-                const tx = await _createTransaction(args, txn);
+                const tx = await _createTransaction(args, txn, {
+                    receiverOwnerID: senderWalletMirror.ownerID,
+                    senderOwnerID: receiverWalletMirror.ownerID,
+                });
                 console.log('tx', tx);
                 if (!tx) {
                     rej(`Failed to create transaction: ${args.title}`);
@@ -405,6 +427,7 @@ export const createTransaction_QuantumLedger = async (
 export const _createTransaction = async (
     args: PostTransactionXCloudRequestBody,
     txn: TransactionExecutor,
+    { receiverOwnerID, senderOwnerID }: { receiverOwnerID: UserID; senderOwnerID: UserID },
 ): Promise<Transaction_Quantum> => {
     const p: Promise<Transaction_Quantum> = new Promise(async (res, rej) => {
         console.log('txn.executeLambda...');
@@ -512,6 +535,7 @@ export const _createTransaction = async (
             if (ionDoc !== null) {
                 const result = await txn.execute('INSERT INTO Transactions ?', ionDoc);
                 console.log('result', result);
+
                 const documentId = result.getResultList()[0].get('documentId');
                 console.log(`documentId: ${documentId}`);
                 const resultSet = await txn.execute(
@@ -540,6 +564,50 @@ export const _createTransaction = async (
           `,
                 );
                 console.log(`Successfully updated receiver wallet balance to ${receiverWalletUpdatedBalance}`);
+                console.log(`Mirroring to firestore...`);
+
+                const [txSender, txReceiver, wlSender, wlReceiver] = await Promise.all([
+                    CreateMirrorTx_Fireledger({
+                        txID: id,
+                        sendingWallet: args.senderWallet,
+                        recievingWallet: args.receiverWallet,
+                        walletAliasID: args.senderWallet,
+                        amount: args.amount * -1,
+                        note: explanations[args.senderWallet] ? explanations[args.senderWallet].explanation || '' : '',
+                        type: args.type,
+                        senderUserID: senderOwnerID,
+                        recieverUserID: receiverOwnerID,
+                        ownerID: senderOwnerID,
+                        recallTransactionID: args.recallMetadata?.originalTransactionID,
+                        cashOutTransactionID: args.cashOutMetadata?.originalTransactionID,
+                    }),
+                    CreateMirrorTx_Fireledger({
+                        txID: id,
+                        sendingWallet: args.senderWallet,
+                        recievingWallet: args.receiverWallet,
+                        walletAliasID: args.receiverWallet,
+                        amount: args.amount,
+                        note: explanations[args.senderWallet] ? explanations[args.senderWallet].explanation || '' : '',
+                        type: args.type,
+                        senderUserID: senderOwnerID,
+                        recieverUserID: receiverOwnerID,
+                        ownerID: receiverOwnerID,
+                        recallTransactionID: args.recallMetadata?.originalTransactionID,
+                        cashOutTransactionID: args.cashOutMetadata?.originalTransactionID,
+                    }),
+                    UpdateMirrorWallet_Fireledger({
+                        balance: senderWalletUpdatedBalance,
+                        walletAliasID: args.senderWallet,
+                    }),
+                    UpdateMirrorWallet_Fireledger({
+                        balance: receiverWalletUpdatedBalance,
+                        walletAliasID: args.receiverWallet,
+                    }),
+                ]);
+                console.log(`txSender`, txSender);
+                console.log(`txReceiver`, txReceiver);
+                console.log(`wlSender`, wlSender);
+                console.log(`wlReceiver`, wlReceiver);
                 res(tx);
                 return tx;
             } else {
@@ -592,8 +660,29 @@ export const recallTransaction_QuantumLedger = async (args: RecallTransactionXCl
 
         // assume recallable
         try {
-            await qldbDriver.executeLambda(async (txn: TransactionExecutor) => {
-                const tx = await _getTransaction(
+            let tx: Transaction_Quantum | undefined;
+            let recallTxData: PostTransactionXCloudRequestBody | undefined;
+            let recallTxID: TransactionID | undefined;
+            let originalSenderWalletUpdatedBalance: number | undefined;
+            let originalReceiverWalletUpdatedBalance: number | undefined;
+            let _originalSenderWalletQLDB: Wallet_Quantum | undefined;
+            let _originalReceiverWalletQLDB: Wallet_Quantum | undefined;
+            const txs = await ListMirrorTx_Fireledger({
+                txID: args.transactionID,
+            });
+            const _tx = txs[0];
+            console.log(`_tx`, _tx);
+            if (!_tx) {
+                console.log(`Not Found mirror tx=${args.transactionID}`);
+                rej(`Not Found tx=${args.transactionID}`);
+                return;
+            }
+
+            const originalSenderUserID = _tx.senderUserID;
+            const originalReceiverUserID = _tx.recieverUserID;
+
+            const rtx = await qldbDriver.executeLambda(async (txn: TransactionExecutor) => {
+                tx = await _getTransaction(
                     {
                         transactionID: args.transactionID,
                     },
@@ -642,7 +731,33 @@ export const recallTransaction_QuantumLedger = async (args: RecallTransactionXCl
                     rej(`Only the sender or receiver can recall a transaction. tx=${args.transactionID}`);
                     return;
                 }
-                const recallTxData: PostTransactionXCloudRequestBody = {
+                const [originalSenderWalletQLDB, originalReceiverWalletQLDB] = await Promise.all([
+                    getWallet_QuantumLedger({
+                        walletAliasID: tx.sendingWallet,
+                    }),
+                    getWallet_QuantumLedger({
+                        walletAliasID: tx.recievingWallet,
+                    }),
+                ]);
+                _originalSenderWalletQLDB = originalSenderWalletQLDB;
+                _originalReceiverWalletQLDB = originalReceiverWalletQLDB;
+
+                if (!originalSenderWalletQLDB || !originalReceiverWalletQLDB) {
+                    console.log(`a wallet was null`);
+                    rej(`a wallet was null`);
+                    return;
+                }
+                if (originalReceiverWalletQLDB.balance < tx.amount) {
+                    rej('They do not have enough money to recall');
+                    return;
+                }
+
+                originalSenderWalletUpdatedBalance =
+                    parseFloat(`${originalSenderWalletQLDB.balance}`) + parseFloat(`${tx.amount}`);
+                originalReceiverWalletUpdatedBalance =
+                    parseFloat(`${originalReceiverWalletQLDB.balance}`) - parseFloat(`${tx.amount}`);
+
+                recallTxData = {
                     title: `Recall: "${tx.title}"`,
                     note: `Recall: "${tx.note}"`,
                     purchaseManifestID: tx.purchaseManifestID,
@@ -671,7 +786,11 @@ export const recallTransaction_QuantumLedger = async (args: RecallTransactionXCl
                     },
                 };
                 console.log(`recallTxData`, recallTxData);
-                const recall_Tx = await _createTransaction(recallTxData, txn);
+                const recall_Tx = await _createTransaction(recallTxData, txn, {
+                    receiverOwnerID: originalReceiverUserID,
+                    senderOwnerID: originalSenderUserID,
+                });
+                recallTxID = recall_Tx.id;
                 console.log(`recall_Tx`, recall_Tx);
                 if (!recall_Tx) {
                     rej(`Failed to create recall for transaction tx=${args.transactionID}`);
@@ -687,14 +806,65 @@ export const recallTransaction_QuantumLedger = async (args: RecallTransactionXCl
                 );
                 console.log('updatedTx', updatedTx);
                 console.log('Executed update query');
+
                 const resultSet = await txn.execute(`SELECT * FROM Transactions WHERE id = ?`, recall_Tx.id);
                 console.log('Executed select query');
                 const recallDoc = resultSet.getResultList()[0];
                 console.log(`Successfully updated document into table: ${JSON.stringify(recallDoc)}`);
                 const rtx = domValueTransactionToTyped(recallDoc);
                 console.log('rtx', rtx);
-                res(rtx);
+                return rtx;
             });
+            if (
+                !rtx ||
+                !tx ||
+                !recallTxData ||
+                !recallTxID ||
+                originalSenderWalletUpdatedBalance === undefined ||
+                originalReceiverWalletUpdatedBalance === undefined ||
+                !_originalSenderWalletQLDB ||
+                !_originalReceiverWalletQLDB
+            ) {
+                console.log(`
+              rtx = ${JSON.stringify(rtx)}
+              tx = ${JSON.stringify(tx)}
+              recallTxData = ${JSON.stringify(recallTxData)}
+              recallTxID = ${recallTxID}
+              originalSenderWalletUpdatedBalance = ${originalSenderWalletUpdatedBalance}
+              originalReceiverWalletUpdatedBalance = ${originalReceiverWalletUpdatedBalance}
+              _originalSenderWalletQLDB = ${JSON.stringify(_originalSenderWalletQLDB)}
+              _originalReceiverWalletQLDB = ${JSON.stringify(_originalReceiverWalletQLDB)}
+              `);
+                rej('something was null after QLDB');
+                return;
+            }
+
+            const [txUpdateSender, txUpdateReceiver] = await Promise.all([
+                UpdateTxWallet_Fireledger({
+                    id: getMirrorTransactionID({
+                        txID: tx.id,
+                        walletAliasID: tx.sendingWallet,
+                    }),
+                    recallTransactionID: getMirrorTransactionID({
+                        txID: recallTxID,
+                        walletAliasID: tx.sendingWallet,
+                    }),
+                }),
+                UpdateTxWallet_Fireledger({
+                    id: getMirrorTransactionID({
+                        txID: tx.id,
+                        walletAliasID: tx.recievingWallet,
+                    }),
+                    recallTransactionID: getMirrorTransactionID({
+                        txID: recallTxID,
+                        walletAliasID: tx.recievingWallet,
+                    }),
+                }),
+            ]);
+            console.log(`txUpdateSender`, txUpdateSender);
+            console.log(`txUpdateReceiver`, txUpdateReceiver);
+            res(rtx);
+            return rtx;
         } catch (e) {
             console.log('recall transaction error', e);
             rej(e);
@@ -710,8 +880,30 @@ export const cashOutTransaction_QuantumLedger = async (args: CashOutXCloudReques
 
         // assume recallable
         try {
-            await qldbDriver.executeLambda(async (txn: TransactionExecutor) => {
-                const tx = await _getTransaction(
+            let tx: Transaction_Quantum | undefined;
+            let recallTxData: PostTransactionXCloudRequestBody | undefined;
+            let recallTxID: TransactionID | undefined;
+            let originalSenderWalletUpdatedBalance: number | undefined;
+            let originalReceiverWalletUpdatedBalance: number | undefined;
+            let _originalSenderWalletQLDB: Wallet_Quantum | undefined;
+            let _originalReceiverWalletQLDB: Wallet_Quantum | undefined;
+
+            const txs = await ListMirrorTx_Fireledger({
+                txID: args.transactionID,
+            });
+            const _tx = txs[0];
+            console.log(`_tx`, _tx);
+            if (!_tx) {
+                console.log(`Not Found mirror tx=${args.transactionID}`);
+                rej(`Not Found tx=${args.transactionID}`);
+                return;
+            }
+
+            const originalSenderUserID = _tx.senderUserID;
+            const originalReceiverUserID = _tx.recieverUserID;
+
+            const rtx = await qldbDriver.executeLambda(async (txn: TransactionExecutor) => {
+                tx = await _getTransaction(
                     {
                         transactionID: args.transactionID,
                     },
@@ -738,12 +930,37 @@ export const cashOutTransaction_QuantumLedger = async (args: CashOutXCloudReques
                     rej(`Already redeemed tx=${args.transactionID}`);
                     return;
                 }
-                const recallTxData: PostTransactionXCloudRequestBody = {
+                const [originalSenderWalletQLDB, originalReceiverWalletQLDB] = await Promise.all([
+                    getWallet_QuantumLedger({
+                        walletAliasID: tx.sendingWallet,
+                    }),
+                    getWallet_QuantumLedger({
+                        walletAliasID: tx.recievingWallet,
+                    }),
+                ]);
+                _originalSenderWalletQLDB = originalSenderWalletQLDB;
+                _originalReceiverWalletQLDB = originalReceiverWalletQLDB;
+                if (!originalSenderWalletQLDB || !originalReceiverWalletQLDB) {
+                    console.log(`a wallet was null`);
+                    rej(`a wallet was null`);
+                    return;
+                }
+                if (originalReceiverWalletQLDB.balance < tx.amount) {
+                    rej('They do not have enough money to recall');
+                    return;
+                }
+
+                originalSenderWalletUpdatedBalance =
+                    parseFloat(`${originalSenderWalletQLDB.balance}`) + parseFloat(`${tx.amount}`);
+                originalReceiverWalletUpdatedBalance =
+                    parseFloat(`${originalReceiverWalletQLDB.balance}`) - parseFloat(`${tx.amount}`);
+
+                recallTxData = {
                     title: `Cash Out: "${tx.title}"`,
                     note: `Cash Out: "${tx.note}"`,
                     purchaseManifestID: tx.purchaseManifestID,
                     attribution: tx.attribution,
-                    type: TransactionType.RECALL,
+                    type: TransactionType.CASH_OUT,
                     amount: tx.amount,
                     senderWallet: tx.recievingWallet,
                     receiverWallet: tx.sendingWallet,
@@ -755,18 +972,23 @@ export const cashOutTransaction_QuantumLedger = async (args: CashOutXCloudReques
                         };
                         return {
                             ...e,
-                            explanation: `Got Recalled: ${e.explanation}`,
+                            explanation: `Cash Out: ${e.explanation}`,
                             amount: e.amount * -1,
                         };
                     }),
                     cashOutMetadata: {
                         initiatorWallet: args.initiatorWallet,
+                        originalTransactionID: tx.id,
                         cashoutCode: args.cashoutCode,
                     },
                 };
                 console.log(`recallTxData`, recallTxData);
-                const recall_Tx = await _createTransaction(recallTxData, txn);
+                const recall_Tx = await _createTransaction(recallTxData, txn, {
+                    receiverOwnerID: originalReceiverUserID,
+                    senderOwnerID: originalSenderUserID,
+                });
                 console.log(`recall_Tx`, recall_Tx);
+                recallTxID = recall_Tx.id;
                 if (!recall_Tx) {
                     rej(`Failed to create recall for transaction tx=${args.transactionID}`);
                     return;
@@ -779,7 +1001,9 @@ export const cashOutTransaction_QuantumLedger = async (args: CashOutXCloudReques
                     WHERE id = '${tx.id}'
                   `,
                 );
+
                 console.log('updatedTx', updatedTx);
+
                 console.log('Executed update query');
                 const resultSet = await txn.execute(`SELECT * FROM Transactions WHERE id = ?`, recall_Tx.id);
                 console.log('Executed select query');
@@ -787,8 +1011,57 @@ export const cashOutTransaction_QuantumLedger = async (args: CashOutXCloudReques
                 console.log(`Successfully updated document into table: ${JSON.stringify(recallDoc)}`);
                 const rtx = domValueTransactionToTyped(recallDoc);
                 console.log('rtx', rtx);
-                res(rtx);
+                return rtx;
             });
+            if (
+                !rtx ||
+                !tx ||
+                !recallTxData ||
+                !recallTxID ||
+                originalSenderWalletUpdatedBalance === undefined ||
+                originalReceiverWalletUpdatedBalance === undefined ||
+                !_originalSenderWalletQLDB ||
+                !_originalReceiverWalletQLDB
+            ) {
+                console.log(`
+            rtx = ${JSON.stringify(rtx)}
+            tx = ${JSON.stringify(tx)}
+            recallTxData = ${JSON.stringify(recallTxData)}
+            recallTxID = ${recallTxID}
+            originalSenderWalletUpdatedBalance = ${originalSenderWalletUpdatedBalance}
+            originalReceiverWalletUpdatedBalance = ${originalReceiverWalletUpdatedBalance}
+            _originalSenderWalletQLDB = ${JSON.stringify(_originalSenderWalletQLDB)}
+            _originalReceiverWalletQLDB = ${JSON.stringify(_originalReceiverWalletQLDB)}
+            `);
+                rej('something was null after QLDB');
+                return;
+            }
+            const [txUpdateSender, txUpdateReceiver] = await Promise.all([
+                UpdateTxWallet_Fireledger({
+                    id: getMirrorTransactionID({
+                        txID: tx.id,
+                        walletAliasID: tx.sendingWallet,
+                    }),
+                    cashOutTransactionID: getMirrorTransactionID({
+                        txID: recallTxID,
+                        walletAliasID: tx.sendingWallet,
+                    }),
+                }),
+                UpdateTxWallet_Fireledger({
+                    id: getMirrorTransactionID({
+                        txID: tx.id,
+                        walletAliasID: tx.recievingWallet,
+                    }),
+                    cashOutTransactionID: getMirrorTransactionID({
+                        txID: recallTxID,
+                        walletAliasID: tx.recievingWallet,
+                    }),
+                }),
+            ]);
+            console.log(`txUpdateSender`, txUpdateSender);
+            console.log(`txUpdateReceiver`, txUpdateReceiver);
+            res(rtx);
+            return rtx;
         } catch (e) {
             console.log('recall transaction error', e);
             rej(e);

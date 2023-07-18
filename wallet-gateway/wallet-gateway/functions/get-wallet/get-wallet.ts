@@ -1,6 +1,7 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { getWallet_QuantumLedger, initQuantumLedger_Drivers } from '../../services/ledger';
 import { GetWalletXCloudRequestBody } from '@milkshakechat/helpers';
+import { initFirebase } from '../../services/firebase';
 
 /**
  *
@@ -23,6 +24,7 @@ export const getWallet = async (event: APIGatewayProxyEvent): Promise<APIGateway
         };
     }
     await initQuantumLedger_Drivers();
+    await initFirebase();
     const queryParams = event.queryStringParameters as unknown as GetWalletXCloudRequestBody;
     try {
         const wallet = await getWallet_QuantumLedger({

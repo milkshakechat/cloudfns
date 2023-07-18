@@ -4,6 +4,7 @@ import {
     cashOutTransaction_QuantumLedger as cashOutTransactionQLDB,
     initQuantumLedger_Drivers,
 } from '../../services/ledger';
+import { initFirebase } from '../../services/firebase';
 
 /**
  *
@@ -17,6 +18,7 @@ import {
 
 export const cashOutTransaction = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     console.log('cashOutTransaction');
+    await initFirebase();
     console.log('-------- event -------');
     console.log(event);
     console.log('-------- event -------');

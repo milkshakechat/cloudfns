@@ -5,6 +5,7 @@ import {
     initQuantumLedger_Drivers,
 } from '../../services/ledger';
 import { GetTransactionXCloudRequestBody } from '@milkshakechat/helpers';
+import { initFirebase } from '../../services/firebase';
 
 /**
  *
@@ -27,6 +28,7 @@ export const getTransaction = async (event: APIGatewayProxyEvent): Promise<APIGa
         };
     }
     await initQuantumLedger_Drivers();
+    await initFirebase();
     const queryParams = event.queryStringParameters as unknown as GetTransactionXCloudRequestBody;
     try {
         const tx = await getTransaction_QuantumLedger({
