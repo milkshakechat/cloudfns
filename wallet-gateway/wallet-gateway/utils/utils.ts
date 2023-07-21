@@ -12,3 +12,13 @@ export const encodeBody = (obj: any) => {
     console.log(encodedBody); // Outputs: eyJ0ZXN0IjoiYm9keSJ9
     return encodedBody;
 };
+
+export function findUndefinedProperties(obj: any, path = '') {
+    for (const key in obj) {
+        if (obj[key] && typeof obj[key] === 'object') {
+            findUndefinedProperties(obj[key], `${path}${key}.`);
+        } else if (obj[key] === undefined) {
+            console.log(`Undefined property: ${path}${key}`);
+        }
+    }
+}

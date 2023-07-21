@@ -35,8 +35,12 @@ export const postTransaction = async (event: APIGatewayProxyEvent): Promise<APIG
     }
     console.log('postTransaction...');
     try {
+        console.log('body', event.body);
+        console.log('typeof body', typeof event.body);
         const body = JSON.parse(event.body) as PostTransactionXCloudRequestBody;
-        if (!body.amount || !body.senderWallet || !body.receiverWallet) {
+        console.log('body', body);
+        console.log('typeof body', typeof body);
+        if (!body.senderWallet || !body.receiverWallet) {
             return {
                 statusCode: 400,
                 body: JSON.stringify({
