@@ -28,7 +28,7 @@ import {
 } from '@milkshakechat/helpers';
 import { v4 as uuidv4 } from 'uuid';
 import { dom, load, dumpBinary, dumpText } from 'ion-js';
-import { sleep } from '../utils/utils';
+import { findUndefinedProperties, sleep } from '../utils/utils';
 import { WalletAliasID } from '@milkshakechat/helpers';
 import {
     CreateMirrorTx_Fireledger,
@@ -99,6 +99,9 @@ const convertIonHashToJSArray = (result: dom.Value | null) => {
     return entries;
 };
 export const domValueWalletToTyped = (result: dom.Value) => {
+    if (!result) {
+        throw Error('provided dom value is null');
+    }
     const wallet: Wallet_Quantum = {
         id: (result.get('id')?.stringValue() || '') as WalletID,
         walletAliasID: (result.get('walletAliasID')?.stringValue() || '') as WalletAliasID,
@@ -113,6 +116,9 @@ export const domValueWalletToTyped = (result: dom.Value) => {
     return wallet;
 };
 export const domValueTransactionToTyped = (result: dom.Value) => {
+    if (!result) {
+        throw Error('provided dom value is null');
+    }
     const _expls = result.get('explanations');
     const expls = convertIonHashToJSArray(_expls) || [];
 
@@ -174,7 +180,7 @@ export const domValueTransactionToTyped = (result: dom.Value) => {
         type: (result.get('type')?.stringValue() || '') as TransactionType,
         attribution: (result.get('attribution')?.stringValue() || '') as UserRelationshipHash,
         gotRecalled: (result.get('gotRecalled')?.booleanValue() || false) as boolean, // recalled means the money returned to sender
-        gotCashedOut: (result.get('gotCashedOut')?.booleanValue() || false) as boolean, // cashed out means the money was withdrawn from escrow
+        gotCashOut: (result.get('gotCashOut')?.booleanValue() || false) as boolean, // cashed out means the money was withdrawn from escrow
         recallTransactionID: (result.get('recallTransactionID')?.stringValue() || '') as TransactionID,
         cashOutTransactionID: (result.get('cashOutTransactionID')?.stringValue() || '') as TransactionID,
         metadata: {
@@ -191,7 +197,7 @@ export const domValueTransactionToTyped = (result: dom.Value) => {
                       originalBuyFrequency: (salesMetadata?.get('originalBuyFrequency')?.stringValue() ||
                           WishBuyFrequency.ONE_TIME) as WishBuyFrequency,
                   }
-                : undefined,
+                : null,
             recallMetadata: recallMetadata
                 ? {
                       originalTransactionID: (recallMetadata?.get('originalTransactionID')?.stringValue() ||
@@ -199,18 +205,18 @@ export const domValueTransactionToTyped = (result: dom.Value) => {
                       recallerWalletID: (recallMetadata?.get('recallerWalletID')?.stringValue() || '') as WalletAliasID,
                       recallerNote: recallMetadata?.get('recallerNote')?.stringValue() || '',
                   }
-                : undefined,
+                : null,
             transferMetadata: transferMetadata
                 ? {
                       senderNote: transferMetadata?.get('senderNote')?.stringValue() || '',
                   }
-                : undefined,
+                : null,
             topUpMetadata: topUpMetadata
                 ? {
                       internalNote: topUpMetadata?.get('internalNote')?.stringValue() || '',
                       promoCode: topUpMetadata?.get('promoCode')?.stringValue() || '',
                   }
-                : undefined,
+                : null,
             cashOutMetadata: cashOutMetadata
                 ? {
                       initiatorWallet: (cashOutMetadata?.get('initiatorWallet')?.stringValue() || '') as WalletAliasID,
@@ -218,7 +224,7 @@ export const domValueTransactionToTyped = (result: dom.Value) => {
                       originalTransactionID: (cashOutMetadata?.get('originalTransactionID')?.stringValue() ||
                           '') as TransactionID,
                   }
-                : undefined,
+                : null,
         },
     };
     return tx;
@@ -478,6 +484,7 @@ export const _createTransaction = async (
         const id = uuidv4() as TransactionID;
         console.log(`id: ${id}`);
         const now = new Date();
+        console.log(`now: `, now);
         const transactionMetadata: TransactionMetadata = {
             transactionID: id,
         };
@@ -519,15 +526,22 @@ export const _createTransaction = async (
             explanations,
             amount: args.amount,
             type: args.type,
-            attribution: args.attribution,
+            attribution: args.attribution ? args.attribution : '',
             gotRecalled: args.gotRecalled ? args.gotRecalled : false,
-            gotCashedOut: false,
+            gotCashOut: args.gotCashOut ? args.gotCashOut : false,
+            recallTransactionID: args.recallMetadata?.originalTransactionID
+                ? args.recallMetadata.originalTransactionID
+                : ('' as TransactionID),
+            cashOutTransactionID: args.cashOutMetadata?.originalTransactionID
+                ? args.cashOutMetadata.originalTransactionID
+                : ('' as TransactionID),
             metadata: transactionMetadata,
         };
         if (args.purchaseManifestID) {
             doc.purchaseManifestID = args.purchaseManifestID;
         }
         console.log(`doc: ${JSON.stringify(doc)}`);
+        findUndefinedProperties(doc);
         // Create a sample Ion doc
         try {
             const bd = dumpText(doc);
@@ -582,6 +596,7 @@ export const _createTransaction = async (
                         ownerID: senderOwnerID,
                         recallTransactionID: args.recallMetadata?.originalTransactionID,
                         cashOutTransactionID: args.cashOutMetadata?.originalTransactionID,
+                        referenceID: args.referenceID,
                     }),
                     CreateMirrorTx_Fireledger({
                         txID: id,
@@ -598,6 +613,7 @@ export const _createTransaction = async (
                         ownerID: receiverOwnerID,
                         recallTransactionID: args.recallMetadata?.originalTransactionID,
                         cashOutTransactionID: args.cashOutMetadata?.originalTransactionID,
+                        referenceID: args.referenceID,
                     }),
                     UpdateMirrorWallet_Fireledger({
                         balance: senderWalletUpdatedBalance,
@@ -619,6 +635,7 @@ export const _createTransaction = async (
             }
         } catch (e) {
             console.log(e);
+            console.error((e as any).stack);
             console.log(`--- big error`);
         }
     });
@@ -710,7 +727,7 @@ export const recallTransaction_QuantumLedger = async (args: RecallTransactionXCl
                     rej(`Already reverted tx=${args.transactionID}`);
                     return;
                 }
-                if (tx.gotCashedOut) {
+                if (tx.gotCashOut) {
                     console.log(`Already redeemed tx=${args.transactionID}`);
                     rej(`Already redeemed tx=${args.transactionID}`);
                     return;
@@ -782,17 +799,19 @@ export const recallTransaction_QuantumLedger = async (args: RecallTransactionXCl
                             amount: e.amount * -1,
                         };
                     }),
-                    gotRecalled: true,
                     recallMetadata: {
                         originalTransactionID: tx.id,
                         recallerWalletID: args.recallerWalletID,
                         recallerNote: args.recallerNote,
                     },
+                    referenceID: args.referenceID,
+                    recallTransactionID: tx.id,
+                    gotRecalled: true,
                 };
                 console.log(`recallTxData`, recallTxData);
                 const recall_Tx = await _createTransaction(recallTxData, txn, {
-                    receiverOwnerID: originalReceiverUserID,
-                    senderOwnerID: originalSenderUserID,
+                    receiverOwnerID: originalSenderUserID,
+                    senderOwnerID: originalReceiverUserID,
                 });
                 recallTxID = recall_Tx.id;
                 console.log(`recall_Tx`, recall_Tx);
@@ -929,7 +948,7 @@ export const cashOutTransaction_QuantumLedger = async (args: CashOutXCloudReques
                     rej(`Already reverted tx=${args.transactionID}`);
                     return;
                 }
-                if (tx.gotCashedOut) {
+                if (tx.gotCashOut) {
                     console.log(`Already redeemed tx=${args.transactionID}`);
                     rej(`Already redeemed tx=${args.transactionID}`);
                     return;
@@ -985,11 +1004,14 @@ export const cashOutTransaction_QuantumLedger = async (args: CashOutXCloudReques
                         originalTransactionID: tx.id,
                         cashoutCode: args.cashoutCode,
                     },
+                    referenceID: args.referenceID,
+                    cashOutTransactionID: tx.id,
+                    gotCashOut: true,
                 };
                 console.log(`recallTxData`, recallTxData);
                 const recall_Tx = await _createTransaction(recallTxData, txn, {
-                    receiverOwnerID: originalReceiverUserID,
-                    senderOwnerID: originalSenderUserID,
+                    receiverOwnerID: originalSenderUserID,
+                    senderOwnerID: originalReceiverUserID,
                 });
                 console.log(`recall_Tx`, recall_Tx);
                 recallTxID = recall_Tx.id;

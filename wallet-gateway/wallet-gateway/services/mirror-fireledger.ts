@@ -4,6 +4,7 @@ import {
     TimestampFirestore,
     TransactionID,
     TransactionType,
+    TxRefID,
     Tx_MirrorFireLedger,
     UserID,
     WalletAliasID,
@@ -78,6 +79,7 @@ export const CreateMirrorTx_Fireledger = async (args: {
     ownerID: UserID;
     recallTransactionID?: TransactionID;
     cashOutTransactionID?: TransactionID;
+    referenceID?: TxRefID;
 }): Promise<Tx_MirrorFireLedger> => {
     const {
         txID, // mirror id QLDB
@@ -92,6 +94,7 @@ export const CreateMirrorTx_Fireledger = async (args: {
         ownerID,
         recallTransactionID,
         cashOutTransactionID,
+        referenceID,
     } = args;
     const now = createFirestoreTimestamp();
 
@@ -111,6 +114,7 @@ export const CreateMirrorTx_Fireledger = async (args: {
         senderUserID,
         recieverUserID,
         ownerID,
+        referenceID,
         recallTransactionID: recallTransactionID
             ? getMirrorTransactionID({
                   txID: recallTransactionID,
