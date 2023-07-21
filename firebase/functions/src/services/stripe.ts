@@ -45,6 +45,7 @@ export const createCustomerStripe = async ({
         stripeCustomerID: customer.id as StripeCustomerID,
         stripeCustomerSubscriptionID: sub.id as StripeSubscriptionID,
         hasMerchantPrivilege: false,
+        defaultPaymentMethodID: undefined,
       },
     },
     collection: FirestoreCollection.USERS,

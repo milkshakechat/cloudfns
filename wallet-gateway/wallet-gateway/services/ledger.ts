@@ -787,6 +787,8 @@ export const recallTransaction_QuantumLedger = async (args: RecallTransactionXCl
                     amount: tx.amount,
                     senderWallet: tx.recievingWallet,
                     receiverWallet: tx.sendingWallet,
+                    senderUserID: originalReceiverUserID,
+                    receiverUserID: originalSenderUserID,
                     explanations: Object.values(tx.explanations).map((ex) => {
                         const e = ex as unknown as {
                             walletAliasID: WalletAliasID;
@@ -809,6 +811,10 @@ export const recallTransaction_QuantumLedger = async (args: RecallTransactionXCl
                     gotRecalled: true,
                 };
                 console.log(`recallTxData`, recallTxData);
+                if (!recallTxData) {
+                    rej(`Failed to create recall for transaction tx=${args.transactionID}`);
+                    return;
+                }
                 const recall_Tx = await _createTransaction(recallTxData, txn, {
                     receiverOwnerID: originalSenderUserID,
                     senderOwnerID: originalReceiverUserID,
@@ -987,6 +993,8 @@ export const cashOutTransaction_QuantumLedger = async (args: CashOutXCloudReques
                     amount: tx.amount,
                     senderWallet: tx.recievingWallet,
                     receiverWallet: tx.sendingWallet,
+                    senderUserID: originalReceiverUserID,
+                    receiverUserID: originalSenderUserID,
                     explanations: Object.values(tx.explanations).map((ex) => {
                         const e = ex as unknown as {
                             walletAliasID: WalletAliasID;
@@ -1009,6 +1017,10 @@ export const cashOutTransaction_QuantumLedger = async (args: CashOutXCloudReques
                     gotCashOut: true,
                 };
                 console.log(`recallTxData`, recallTxData);
+                if (!recallTxData) {
+                    rej(`Failed to create recall for transaction tx=${args.transactionID}`);
+                    return;
+                }
                 const recall_Tx = await _createTransaction(recallTxData, txn, {
                     receiverOwnerID: originalSenderUserID,
                     senderOwnerID: originalReceiverUserID,
