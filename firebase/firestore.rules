@@ -6,6 +6,18 @@ service cloud.firestore {
 		match /notifications/{notificationId} {
       allow read: if request.auth != null && request.auth.uid == resource.data.recipientID;
     }
+    
+		match /mirrorWallets/{walletAliasID} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.ownerID;
+    }
+    
+		match /mirrorTx/{mirrorTxID} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.ownerID;
+    }
+    
+		match /purchaseManifests/{purchaseManifestID} {
+      allow read: if request.auth != null && (request.auth.uid == resource.data.sellerUserID || request.auth.uid == resource.data.buyerUserID);
+    }
 
     match /{document=**} {
       allow read, write: if false;
