@@ -85,9 +85,3 @@ export const postTransaction = async (event: APIGatewayProxyEvent): Promise<APIG
         };
     }
 };
-
-// "senderWallet": "user1234-main-trading-wallet",
-//     "receiverWallet": "user567-main-escrow-wallet",
-
-// "senderWallet": "global-store-4e9f9879-d627-401f-abf3-cc2bcf173e26",
-// "receiverWallet": "user1234-main-trading-wallet",
