@@ -1,6 +1,7 @@
 import {
     FirestoreCollection,
     MirrorTransactionID,
+    PurchaseMainfestID,
     TimestampFirestore,
     TransactionID,
     TransactionType,
@@ -80,6 +81,7 @@ export const CreateMirrorTx_Fireledger = async (args: {
     recallTransactionID?: TransactionID;
     cashOutTransactionID?: TransactionID;
     referenceID?: TxRefID;
+    purchaseManifestID?: PurchaseMainfestID;
 }): Promise<Tx_MirrorFireLedger> => {
     const {
         txID, // mirror id QLDB
@@ -95,6 +97,7 @@ export const CreateMirrorTx_Fireledger = async (args: {
         recallTransactionID,
         cashOutTransactionID,
         referenceID,
+        purchaseManifestID,
     } = args;
     const now = createFirestoreTimestamp();
 
@@ -115,6 +118,7 @@ export const CreateMirrorTx_Fireledger = async (args: {
         recieverUserID,
         ownerID,
         referenceID,
+        purchaseManifestID,
         recallTransactionID: recallTransactionID
             ? getMirrorTransactionID({
                   txID: recallTransactionID,

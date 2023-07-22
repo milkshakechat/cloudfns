@@ -597,6 +597,7 @@ export const _createTransaction = async (
                         recallTransactionID: args.recallMetadata?.originalTransactionID,
                         cashOutTransactionID: args.cashOutMetadata?.originalTransactionID,
                         referenceID: args.referenceID,
+                        purchaseManifestID: args.purchaseManifestID,
                     }),
                     CreateMirrorTx_Fireledger({
                         txID: id,
@@ -614,6 +615,7 @@ export const _createTransaction = async (
                         recallTransactionID: args.recallMetadata?.originalTransactionID,
                         cashOutTransactionID: args.cashOutMetadata?.originalTransactionID,
                         referenceID: args.referenceID,
+                        purchaseManifestID: args.purchaseManifestID,
                     }),
                     UpdateMirrorWallet_Fireledger({
                         balance: senderWalletUpdatedBalance,

@@ -33,9 +33,16 @@ export const createCustomerStripe = async ({
   });
   console.log("customer", customer);
   console.log("Subscribe to the zero dollar plan...");
+  const date = new Date();
+  date.setMonth(date.getMonth() + 1);
+  date.setDate(1);
+  date.setHours(0, 0, 0, 0); // sets the time to 00:00:00
+  const nextFirstOfMonth = date.getTime() / 1000;
+
   const sub = await stripe.subscriptions.create({
     customer: customer.id, // Replace with your customer id
     items: [{ price: config.STRIPE.MAIN_BILLING_CYCLE_PRODUCT_PRICE.id }],
+    billing_cycle_anchor: nextFirstOfMonth,
   });
   console.log("sub", sub);
   const updatedUser = await updateFirestoreDoc<UserID, User_Firestore>({
