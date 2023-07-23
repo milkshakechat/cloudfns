@@ -141,3 +141,12 @@ export const getFirebaseConfig = async () => {
     // return firebaseConfig as unknown as FirebaseConfig;
     return JSON.parse(firebaseConfig) as FirebaseConfig;
 };
+
+export const getFCMServerKey = async () => {
+    const fcmServerKey = await accessSecretVersionGCP({
+        projectId: config.GCLOUD.projectId,
+        secretId: config.SECRETS.FCM_SERVER_KEY.secretId,
+        versionId: config.SECRETS.FCM_SERVER_KEY.versionId,
+    });
+    return fcmServerKey;
+};

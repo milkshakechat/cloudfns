@@ -23,6 +23,10 @@ const devConfig: ConfigEnv = {
             secretId: 'firebase-init',
             versionId: 'latest',
         },
+        FCM_SERVER_KEY: {
+            secretId: 'fcm-server-key',
+            versionId: 'latest',
+        },
     },
     LEDGER: {
         region: 'ap-northeast-1',
@@ -56,6 +60,10 @@ const stagingConfig: ConfigEnv = {
         },
         FIREBASE_CONFIG: {
             secretId: 'firebase-init',
+            versionId: 'latest',
+        },
+        FCM_SERVER_KEY: {
+            secretId: 'fcm-server-key',
             versionId: 'latest',
         },
     },
@@ -93,6 +101,10 @@ const prodConfig: ConfigEnv = {
             secretId: 'firebase-init',
             versionId: 'latest',
         },
+        FCM_SERVER_KEY: {
+            secretId: 'fcm-server-key',
+            versionId: 'latest',
+        },
     },
     LEDGER: {
         region: 'ap-northeast-1',
@@ -124,6 +136,7 @@ interface ConfigEnv {
     SECRETS: {
         WALLET_GATEWAY_XCLOUD_GCP: SecretConfigAWS;
         FIREBASE_CONFIG: SecretConfig;
+        FCM_SERVER_KEY: SecretConfig;
     };
     GCLOUD: {
         projectId: string;
