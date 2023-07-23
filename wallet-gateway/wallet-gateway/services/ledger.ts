@@ -25,6 +25,7 @@ import {
     getMainUserTradingWallet,
     getMirrorTransactionID,
     getUserEscrowWallet,
+    placeholderWishlistGraphic,
 } from '@milkshakechat/helpers';
 import { v4 as uuidv4 } from 'uuid';
 import { dom, load, dumpBinary, dumpText } from 'ion-js';
@@ -37,6 +38,7 @@ import {
     UpdateMirrorWallet_Fireledger,
     UpdateTxWallet_Fireledger,
 } from './mirror-fireledger';
+import { sendNotificationToUser } from './notifications';
 
 /**
  * Use the qldbDriver to interact with ledgers
@@ -644,20 +646,59 @@ export const _createTransaction = async (
                     console.log(`txReceiver`, txReceiver);
                     console.log(`wlSender`, wlSender);
                     console.log(`wlReceiver`, wlReceiver);
+                    if (args.sendPushNotif) {
+                        const [notifSender, notifReceiver] = await Promise.all([
+                            sendNotificationToUser({
+                                recipientUserID: senderOwnerID,
+                                notification: {
+                                    data: {
+                                        title: `Tx Success! ${args.title}`,
+                                        image: args.thumbnail || placeholderWishlistGraphic,
+                                        body: explanations[args.senderWallet]
+                                            ? explanations[args.senderWallet].explanation || ''
+                                            : '',
+                                        route: args.purchaseManifestID
+                                            ? `/app/wallet/purchase/${args.purchaseManifestID}`
+                                            : `/app/wallet`,
+                                    },
+                                },
+                                shouldPush: true,
+                            }),
+                            sendNotificationToUser({
+                                recipientUserID: receiverOwnerID,
+                                notification: {
+                                    data: {
+                                        title: `Tx Success! ${args.title}`,
+                                        image: args.thumbnail || placeholderWishlistGraphic,
+                                        body: explanations[args.receiverWallet]
+                                            ? explanations[args.receiverWallet].explanation || ''
+                                            : '',
+                                        route: args.purchaseManifestID
+                                            ? `/app/wallet/purchase/${args.purchaseManifestID}`
+                                            : `/app/wallet`,
+                                    },
+                                },
+                                shouldPush: true,
+                            }),
+                        ]);
+                        console.log(`notifSender`, notifSender);
+                        console.log(`notifReceiver`, notifReceiver);
+                    }
                 };
 
                 res({
                     tx,
                     callback: callbackSyncFireMirror,
                 });
-                return tx;
             } else {
+                rej('ionDoc is null');
                 throw Error('ionDoc is null');
             }
         } catch (e) {
             console.log(e);
             console.error((e as any).stack);
             console.log(`--- big error`);
+            rej(e);
         }
     });
     return p;

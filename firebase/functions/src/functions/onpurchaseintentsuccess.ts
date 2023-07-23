@@ -117,9 +117,9 @@ export const onpurchaseintentsuccess = onRequest(
           if (
             purchaseManifest.agreedBuyFrequency === WishBuyFrequency.ONE_TIME
           ) {
-            titleTopOff = `Top-up ${cookies} cookies: ${titleTopOff}`;
+            titleTopOff = `${titleTopOff} - Top-up ${cookies} cookies`;
           } else {
-            titleTopOff = `Prorated top-up ${cookies} cookies: ${titleTopOff}`;
+            titleTopOff = `${titleTopOff} - Prorated top-up ${cookies} cookies`;
           }
           const _topUpTx: PostTransactionXCloudRequestBody = {
             title: titleTopOff,
@@ -150,14 +150,15 @@ export const onpurchaseintentsuccess = onRequest(
             topUpMetadata: {
               internalNote: `Resulting from successful stripe charge ${intent.id} linked to ${paymentIntentID}`,
             },
+            sendPushNotif: true,
           };
           console.log("_topUpTx", _topUpTx);
           if (
             purchaseManifest.agreedBuyFrequency === WishBuyFrequency.ONE_TIME
           ) {
-            titleAutoSpend = `Auto-spend ${cookies} cookies: ${titleTopOff}`;
+            titleAutoSpend = `${titleTopOff} - Auto-spend ${cookies} cookies`;
           } else {
-            titleAutoSpend = `Prorated auto-spend ${cookies} cookies: ${titleTopOff}`;
+            titleAutoSpend = `${titleTopOff} - Prorated auto-spend ${cookies} cookies`;
           }
           const _spendTx: PostTransactionXCloudRequestBody = {
             title: titleAutoSpend,
@@ -191,6 +192,7 @@ export const onpurchaseintentsuccess = onRequest(
               agreedBuyFrequency: purchaseManifest.agreedBuyFrequency,
               originalBuyFrequency: purchaseManifest.originalBuyFrequency,
             },
+            sendPushNotif: true,
           };
           console.log("_spendTx", _spendTx);
           const transactions: PostTransactionXCloudRequestBody[] = [

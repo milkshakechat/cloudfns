@@ -21,7 +21,7 @@
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@google-cloud/secret-manager": "^4.2.2",
     "@google-cloud/video-transcoder": "^2.6.0",
-    "@milkshakechat/helpers": "^1.0.224",
+    "@milkshakechat/helpers": "^1.0.226",
     "axios": "^1.4.0",
     "child-process-promise": "^2.2.1",
     "dotenv": "^16.1.4",
