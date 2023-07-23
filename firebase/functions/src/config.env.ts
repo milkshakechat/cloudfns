@@ -1,4 +1,4 @@
-import { BucketDef } from "@milkshakechat/helpers";
+import { BucketDef, UserID, WalletAliasID } from "@milkshakechat/helpers";
 
 const devConfig: ConfigEnv = {
   GCLOUD: {
@@ -21,6 +21,10 @@ const devConfig: ConfigEnv = {
       secretId: "xcloud-wallet-gateway-gcp-to-aws",
       versionId: "latest",
     },
+    STRIPE_WEBHOOK: {
+      secretId: "stripe-webhook-payment-intent-secret",
+      versionId: "latest",
+    },
   },
   FIREBASE: {
     apiKey: "AIzaSyAqVL1P4PsE40Bd-Mu8CnqwczpC-hSTaz0",
@@ -40,6 +44,15 @@ const devConfig: ConfigEnv = {
   WALLET_GATEWAY: {
     createWallet: {
       url: "https://ukywzxz9dc.execute-api.ap-northeast-1.amazonaws.com/Staging/wallet",
+    },
+    confirmCharge: {
+      url: "https://ukywzxz9dc.execute-api.ap-northeast-1.amazonaws.com/Staging/transaction/confirm-charge",
+    },
+  },
+  LEDGER: {
+    globalCookieStore: {
+      userID: "store-owner" as UserID,
+      walletAliasID: "milkshake-v0.1_store-wallet" as WalletAliasID,
     },
   },
   STRIPE: {
@@ -69,6 +82,10 @@ const stagingConfig: ConfigEnv = {
       secretId: "xcloud-wallet-gateway-gcp-to-aws",
       versionId: "latest",
     },
+    STRIPE_WEBHOOK: {
+      secretId: "stripe-webhook-payment-intent-secret",
+      versionId: "latest",
+    },
   },
   FIREBASE: {
     apiKey: "AIzaSyAqVL1P4PsE40Bd-Mu8CnqwczpC-hSTaz0",
@@ -88,6 +105,15 @@ const stagingConfig: ConfigEnv = {
   WALLET_GATEWAY: {
     createWallet: {
       url: "https://ukywzxz9dc.execute-api.ap-northeast-1.amazonaws.com/Staging/wallet",
+    },
+    confirmCharge: {
+      url: "https://ukywzxz9dc.execute-api.ap-northeast-1.amazonaws.com/Staging/transaction/confirm-charge",
+    },
+  },
+  LEDGER: {
+    globalCookieStore: {
+      userID: "store-owner" as UserID,
+      walletAliasID: "milkshake-v0.1_store-wallet" as WalletAliasID,
     },
   },
   STRIPE: {
@@ -117,6 +143,10 @@ const prodConfig: ConfigEnv = {
       secretId: "xcloud-wallet-gateway-gcp-to-aws",
       versionId: "latest",
     },
+    STRIPE_WEBHOOK: {
+      secretId: "stripe-webhook-payment-intent-secret",
+      versionId: "latest",
+    },
   },
   FIREBASE: {
     apiKey: "AIzaSyAqVL1P4PsE40Bd-Mu8CnqwczpC-hSTaz0",
@@ -136,6 +166,15 @@ const prodConfig: ConfigEnv = {
   WALLET_GATEWAY: {
     createWallet: {
       url: "https://ukywzxz9dc.execute-api.ap-northeast-1.amazonaws.com/Staging/wallet",
+    },
+    confirmCharge: {
+      url: "https://ukywzxz9dc.execute-api.ap-northeast-1.amazonaws.com/Staging/transaction/confirm-charge",
+    },
+  },
+  LEDGER: {
+    globalCookieStore: {
+      userID: "store-owner" as UserID,
+      walletAliasID: "milkshake-v0.1_store-wallet" as WalletAliasID,
     },
   },
   STRIPE: {
@@ -158,6 +197,7 @@ interface ConfigEnv {
     FCM_SERVER_KEY: SecretConfig;
     STRIPE_SERVER_KEY: SecretConfig;
     CREATE_WALLET_XCLOUD_AWS: SecretConfig;
+    STRIPE_WEBHOOK: SecretConfig;
   };
   FIREBASE: {
     apiKey: string;
@@ -174,6 +214,15 @@ interface ConfigEnv {
   WALLET_GATEWAY: {
     createWallet: {
       url: string;
+    };
+    confirmCharge: {
+      url: string;
+    };
+  };
+  LEDGER: {
+    globalCookieStore: {
+      userID: UserID;
+      walletAliasID: WalletAliasID;
     };
   };
   STRIPE: {

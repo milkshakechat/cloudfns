@@ -10,7 +10,7 @@ import {
 import { updateFirestoreDoc } from "./firestore";
 import config from "../config.env";
 
-let stripe: Stripe;
+export let stripe: Stripe;
 
 export const initStripe = async () => {
   const privateKey = await getStripeSecret();
@@ -58,4 +58,15 @@ export const createCustomerStripe = async ({
     collection: FirestoreCollection.USERS,
   });
   return updatedUser;
+};
+
+export const getProratedCookiesForItemsMainBillingCycle = async (
+  stripeInvoiceID: string
+) => {
+  const invoice = await stripe.invoices.retrieve(stripeInvoiceID);
+  const lineItems = invoice.lines.data;
+  lineItems.forEach((item) => {
+    console.log(`Description: ${item.description}`);
+    console.log(`Amount: ${item.amount}`);
+  });
 };

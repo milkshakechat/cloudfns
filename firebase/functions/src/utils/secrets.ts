@@ -4,7 +4,7 @@ import config from "../config.env";
 import * as dotenv from "dotenv";
 dotenv.config();
 
-async function accessSecretVersionAWS({
+async function accessSecretVersion({
   projectId,
   secretId,
   versionId,
@@ -50,7 +50,7 @@ export interface FirebaseConfig {
   measurementId: string;
 }
 export const getFirebaseConfig = async () => {
-  const firebaseConfig = await accessSecretVersionAWS({
+  const firebaseConfig = await accessSecretVersion({
     projectId: config.GCLOUD.projectId,
     secretId: config.SECRETS.FIREBASE_CONFIG.secretId,
     versionId: config.SECRETS.FIREBASE_CONFIG.versionId,
@@ -59,7 +59,7 @@ export const getFirebaseConfig = async () => {
 };
 
 export const getFCMServerKey = async () => {
-  const fcmServerKey = await accessSecretVersionAWS({
+  const fcmServerKey = await accessSecretVersion({
     projectId: config.GCLOUD.projectId,
     secretId: config.SECRETS.FCM_SERVER_KEY.secretId,
     versionId: config.SECRETS.FCM_SERVER_KEY.versionId,
@@ -78,7 +78,7 @@ export const accessLocalGCPKeyFile = async () => {
 };
 
 export const getStripeSecret = async () => {
-  const stripeSecret = await accessSecretVersionAWS({
+  const stripeSecret = await accessSecretVersion({
     projectId: config.GCLOUD.projectId,
     secretId: config.SECRETS.STRIPE_SERVER_KEY.secretId,
     versionId: config.SECRETS.STRIPE_SERVER_KEY.versionId,
@@ -87,10 +87,19 @@ export const getStripeSecret = async () => {
 };
 
 export const getCreateWalletXCloudAWSSecret = async () => {
-  const xcloudSecret = await accessSecretVersionAWS({
+  const xcloudSecret = await accessSecretVersion({
     projectId: config.GCLOUD.projectId,
     secretId: config.SECRETS.CREATE_WALLET_XCLOUD_AWS.secretId,
     versionId: config.SECRETS.CREATE_WALLET_XCLOUD_AWS.versionId,
   });
   return xcloudSecret;
+};
+
+export const getStripeWebhookSecret = async () => {
+  const stripeWebhookSecret = await accessSecretVersion({
+    projectId: config.GCLOUD.projectId,
+    secretId: config.SECRETS.STRIPE_WEBHOOK.secretId,
+    versionId: config.SECRETS.STRIPE_WEBHOOK.versionId,
+  });
+  return stripeWebhookSecret;
 };
