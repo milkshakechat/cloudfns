@@ -1,4 +1,5 @@
 import {
+  ConfirmChargeXCloudRequestBody,
   CreateWalletXCloudRequestBody,
   UserID,
   WalletType,
@@ -55,4 +56,31 @@ export const createNewUserWallets = async ({ userID }: { userID: UserID }) => {
     tradingWallet: tradingWalletResp.data.wallet as Wallet_Quantum,
     escrowWallet: escrowWalletResp.data.wallet as Wallet_Quantum,
   };
+};
+
+export const confirmChargeSuccessSyncQLDB = async ({
+  transactions,
+}: ConfirmChargeXCloudRequestBody) => {
+  console.log("confirmChargeSuccessSyncQLDB...");
+
+  const xcloudSecret = await getCreateWalletXCloudAWSSecret();
+  // console.log("xcloudSecret", xcloudSecret);
+  // console.log(
+  //   "config.WALLET_GATEWAY.createWallet.url",
+  //   config.WALLET_GATEWAY.createWallet.url
+  // );
+  const body: ConfirmChargeXCloudRequestBody = {
+    transactions,
+  };
+  console.log(`POST to ${config.WALLET_GATEWAY.confirmCharge.url}`);
+  const res = await axios.post(config.WALLET_GATEWAY.confirmCharge.url, body, {
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: xcloudSecret,
+    },
+  });
+  console.log("res", res);
+  console.log("----- xcloudResponse ------");
+  // console.log(xcloudResponse);
+  return;
 };

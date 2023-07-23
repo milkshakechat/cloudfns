@@ -1,6 +1,13 @@
 import { FirestoreCollection, User_Firestore } from "@milkshakechat/helpers";
 import * as admin from "firebase-admin";
-import { DocumentReference, Query, UpdateData } from "firebase-admin/firestore";
+import {
+  DocumentReference,
+  Query,
+  QueryDocumentSnapshot,
+  Timestamp,
+  UpdateData,
+  WhereFilterOp,
+} from "firebase-admin/firestore";
 
 export const checkIfUsernameAvailable = async (
   username: string
@@ -76,4 +83,62 @@ export const updateFirestoreDoc = async <SchemaID extends string, SchemaType>({
     throw Error(`Could not find updated record with id ${id} in ${collection}`);
   }
   return updatedObj;
+};
+
+// list single where
+interface TListFirestoreDocsProps {
+  where: {
+    field: string;
+    operator: WhereFilterOp;
+    value: string | number | boolean | null | Timestamp;
+  };
+  collection: FirestoreCollection;
+}
+export const listFirestoreDocs = async <SchemaType>({
+  where,
+  collection,
+}: TListFirestoreDocsProps): Promise<SchemaType[]> => {
+  const firestore = admin.firestore();
+  const ref = firestore
+    .collection(collection)
+    .where(where.field, where.operator, where.value) as Query<SchemaType>;
+
+  const collectionItems = await ref.get();
+
+  if (collectionItems.empty) {
+    return [];
+  } else {
+    return collectionItems.docs.map(
+      (doc: QueryDocumentSnapshot<SchemaType>) => {
+        const data = doc.data();
+        return data;
+      }
+    );
+  }
+};
+
+// get
+interface TGetFirestoreProps<SchemaID extends string> {
+  id: SchemaID;
+  collection: FirestoreCollection;
+}
+export const getFirestoreDoc = async <SchemaID extends string, SchemaType>({
+  id,
+  collection,
+}: TGetFirestoreProps<SchemaID>): Promise<SchemaType> => {
+  const firestore = admin.firestore();
+  const ref = firestore
+    .collection(collection)
+    .doc(id) as DocumentReference<SchemaType>;
+
+  const snapshot = await ref.get();
+
+  if (!snapshot || !snapshot.exists) {
+    throw Error("No document found");
+  }
+  const data = snapshot.data();
+  if (!data) {
+    throw Error("No data found");
+  }
+  return data;
 };

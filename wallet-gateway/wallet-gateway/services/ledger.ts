@@ -409,9 +409,9 @@ export const createTransaction_QuantumLedger = async (
             }),
         ]);
         try {
-            await qldbDriver.executeLambda(async (txn: TransactionExecutor) => {
+            const qldbRes = await qldbDriver.executeLambda(async (txn: TransactionExecutor) => {
                 console.log('txn.executeLambda...');
-                const tx = await _createTransaction(args, txn, {
+                const { tx, callback } = await _createTransaction(args, txn, {
                     receiverOwnerID: receiverWalletMirror.ownerID,
                     senderOwnerID: senderWalletMirror.ownerID,
                 });
@@ -420,8 +420,16 @@ export const createTransaction_QuantumLedger = async (
                     rej(`Failed to create transaction: ${args.title}`);
                     return;
                 }
-                res(tx);
+                return { tx, callback };
             });
+            if (!qldbRes) {
+                rej(`Failed to create transaction: ${args.title}`);
+                return;
+            } else {
+                const { tx, callback } = qldbRes;
+                await callback();
+                res(tx);
+            }
         } catch (e) {
             console.log('post transaction error', e);
             rej(e);
@@ -434,8 +442,8 @@ export const _createTransaction = async (
     args: PostTransactionXCloudRequestBody,
     txn: TransactionExecutor,
     { receiverOwnerID, senderOwnerID }: { receiverOwnerID: UserID; senderOwnerID: UserID },
-): Promise<Transaction_Quantum> => {
-    const p: Promise<Transaction_Quantum> = new Promise(async (res, rej) => {
+): Promise<{ tx: Transaction_Quantum; callback: () => Promise<void> }> => {
+    const p: Promise<{ tx: Transaction_Quantum; callback: () => Promise<void> }> = new Promise(async (res, rej) => {
         console.log('txn.executeLambda...');
 
         const amount = args.amount;
@@ -461,12 +469,15 @@ export const _createTransaction = async (
                 walletAliasID: args.receiverWallet,
             }),
         ]);
+        console.log(`senderWalletQLDB`, senderWalletQLDB);
+        console.log(`receiverWalletQLDB`, receiverWalletQLDB);
 
         if (!senderWalletQLDB) {
             console.log(`yourWallet is null`);
             rej(`yourWallet is null`);
             return;
         }
+        console.log(`senderWalletQLDB.balance ${senderWalletQLDB.balance} <= amount ${amount}`);
         if (senderWalletQLDB.balance < amount) {
             rej('You do not have enough money');
             return;
@@ -582,55 +593,63 @@ export const _createTransaction = async (
                 console.log(`Successfully updated receiver wallet balance to ${receiverWalletUpdatedBalance}`);
                 console.log(`Mirroring to firestore...`);
 
-                const [txSender, txReceiver, wlSender, wlReceiver] = await Promise.all([
-                    CreateMirrorTx_Fireledger({
-                        txID: id,
-                        sendingWallet: args.senderWallet,
-                        recievingWallet: args.receiverWallet,
-                        walletAliasID: args.senderWallet,
-                        amount: args.amount * -1,
-                        note: explanations[args.senderWallet] ? explanations[args.senderWallet].explanation || '' : '',
-                        type: args.type,
-                        senderUserID: senderOwnerID,
-                        recieverUserID: receiverOwnerID,
-                        ownerID: senderOwnerID,
-                        recallTransactionID: args.recallMetadata?.originalTransactionID,
-                        cashOutTransactionID: args.cashOutMetadata?.originalTransactionID,
-                        referenceID: args.referenceID,
-                        purchaseManifestID: args.purchaseManifestID,
-                    }),
-                    CreateMirrorTx_Fireledger({
-                        txID: id,
-                        sendingWallet: args.senderWallet,
-                        recievingWallet: args.receiverWallet,
-                        walletAliasID: args.receiverWallet,
-                        amount: args.amount,
-                        note: explanations[args.receiverWallet]
-                            ? explanations[args.receiverWallet].explanation || ''
-                            : '',
-                        type: args.type,
-                        senderUserID: senderOwnerID,
-                        recieverUserID: receiverOwnerID,
-                        ownerID: receiverOwnerID,
-                        recallTransactionID: args.recallMetadata?.originalTransactionID,
-                        cashOutTransactionID: args.cashOutMetadata?.originalTransactionID,
-                        referenceID: args.referenceID,
-                        purchaseManifestID: args.purchaseManifestID,
-                    }),
-                    UpdateMirrorWallet_Fireledger({
-                        balance: senderWalletUpdatedBalance,
-                        walletAliasID: args.senderWallet,
-                    }),
-                    UpdateMirrorWallet_Fireledger({
-                        balance: receiverWalletUpdatedBalance,
-                        walletAliasID: args.receiverWallet,
-                    }),
-                ]);
-                console.log(`txSender`, txSender);
-                console.log(`txReceiver`, txReceiver);
-                console.log(`wlSender`, wlSender);
-                console.log(`wlReceiver`, wlReceiver);
-                res(tx);
+                const callbackSyncFireMirror = async () => {
+                    const [txSender, txReceiver, wlSender, wlReceiver] = await Promise.all([
+                        CreateMirrorTx_Fireledger({
+                            txID: id,
+                            sendingWallet: args.senderWallet,
+                            recievingWallet: args.receiverWallet,
+                            walletAliasID: args.senderWallet,
+                            amount: args.amount * -1,
+                            note: explanations[args.senderWallet]
+                                ? explanations[args.senderWallet].explanation || ''
+                                : '',
+                            type: args.type,
+                            senderUserID: senderOwnerID,
+                            recieverUserID: receiverOwnerID,
+                            ownerID: senderOwnerID,
+                            recallTransactionID: args.recallMetadata?.originalTransactionID,
+                            cashOutTransactionID: args.cashOutMetadata?.originalTransactionID,
+                            referenceID: args.referenceID,
+                            purchaseManifestID: args.purchaseManifestID,
+                        }),
+                        CreateMirrorTx_Fireledger({
+                            txID: id,
+                            sendingWallet: args.senderWallet,
+                            recievingWallet: args.receiverWallet,
+                            walletAliasID: args.receiverWallet,
+                            amount: args.amount,
+                            note: explanations[args.receiverWallet]
+                                ? explanations[args.receiverWallet].explanation || ''
+                                : '',
+                            type: args.type,
+                            senderUserID: senderOwnerID,
+                            recieverUserID: receiverOwnerID,
+                            ownerID: receiverOwnerID,
+                            recallTransactionID: args.recallMetadata?.originalTransactionID,
+                            cashOutTransactionID: args.cashOutMetadata?.originalTransactionID,
+                            referenceID: args.referenceID,
+                            purchaseManifestID: args.purchaseManifestID,
+                        }),
+                        UpdateMirrorWallet_Fireledger({
+                            balance: senderWalletUpdatedBalance,
+                            walletAliasID: args.senderWallet,
+                        }),
+                        UpdateMirrorWallet_Fireledger({
+                            balance: receiverWalletUpdatedBalance,
+                            walletAliasID: args.receiverWallet,
+                        }),
+                    ]);
+                    console.log(`txSender`, txSender);
+                    console.log(`txReceiver`, txReceiver);
+                    console.log(`wlSender`, wlSender);
+                    console.log(`wlReceiver`, wlReceiver);
+                };
+
+                res({
+                    tx,
+                    callback: callbackSyncFireMirror,
+                });
                 return tx;
             } else {
                 throw Error('ionDoc is null');
@@ -703,7 +722,9 @@ export const recallTransaction_QuantumLedger = async (args: RecallTransactionXCl
 
             const originalSenderUserID = _tx.senderUserID;
             const originalReceiverUserID = _tx.recieverUserID;
-
+            let _callback = async () => {
+                console.log(`_callback`);
+            };
             const rtx = await qldbDriver.executeLambda(async (txn: TransactionExecutor) => {
                 tx = await _getTransaction(
                     {
@@ -817,10 +838,11 @@ export const recallTransaction_QuantumLedger = async (args: RecallTransactionXCl
                     rej(`Failed to create recall for transaction tx=${args.transactionID}`);
                     return;
                 }
-                const recall_Tx = await _createTransaction(recallTxData, txn, {
+                const { tx: recall_Tx, callback } = await _createTransaction(recallTxData, txn, {
                     receiverOwnerID: originalSenderUserID,
                     senderOwnerID: originalReceiverUserID,
                 });
+                _callback = callback;
                 recallTxID = recall_Tx.id;
                 console.log(`recall_Tx`, recall_Tx);
                 if (!recall_Tx) {
@@ -869,7 +891,7 @@ export const recallTransaction_QuantumLedger = async (args: RecallTransactionXCl
                 rej('something was null after QLDB');
                 return;
             }
-
+            await _callback();
             const [txUpdateSender, txUpdateReceiver] = await Promise.all([
                 UpdateTxWallet_Fireledger({
                     id: getMirrorTransactionID({
@@ -932,6 +954,10 @@ export const cashOutTransaction_QuantumLedger = async (args: CashOutXCloudReques
 
             const originalSenderUserID = _tx.senderUserID;
             const originalReceiverUserID = _tx.recieverUserID;
+
+            let _callback = async () => {
+                console.log(`_callback`);
+            };
 
             const rtx = await qldbDriver.executeLambda(async (txn: TransactionExecutor) => {
                 tx = await _getTransaction(
@@ -1023,12 +1049,13 @@ export const cashOutTransaction_QuantumLedger = async (args: CashOutXCloudReques
                     rej(`Failed to create recall for transaction tx=${args.transactionID}`);
                     return;
                 }
-                const recall_Tx = await _createTransaction(recallTxData, txn, {
+                const { tx: recall_Tx, callback } = await _createTransaction(recallTxData, txn, {
                     receiverOwnerID: originalSenderUserID,
                     senderOwnerID: originalReceiverUserID,
                 });
                 console.log(`recall_Tx`, recall_Tx);
                 recallTxID = recall_Tx.id;
+                _callback = callback;
                 if (!recall_Tx) {
                     rej(`Failed to create recall for transaction tx=${args.transactionID}`);
                     return;
@@ -1076,6 +1103,7 @@ export const cashOutTransaction_QuantumLedger = async (args: CashOutXCloudReques
                 rej('something was null after QLDB');
                 return;
             }
+            await _callback();
             const [txUpdateSender, txUpdateReceiver] = await Promise.all([
                 UpdateTxWallet_Fireledger({
                     id: getMirrorTransactionID({

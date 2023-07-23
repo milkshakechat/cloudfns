@@ -1,4 +1,4 @@
-import admin from 'firebase-admin';
+import * as admin from 'firebase-admin';
 import { getFirebaseConfig } from '../utils/secrets';
 import { decodeBody } from '../utils/utils';
 
