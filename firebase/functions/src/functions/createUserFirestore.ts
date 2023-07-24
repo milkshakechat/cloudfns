@@ -17,8 +17,11 @@ import { createFirestoreTimestamp } from "../services/firestore";
 import { createCustomerStripe, initStripe } from "../services/stripe";
 import { createNewUserWallets } from "../services/ledger";
 
-export const createuserfirestore = functions.auth
-  .user()
+export const createuserfirestore = functions
+  .runWith({
+    timeoutSeconds: 300,
+  })
+  .auth.user()
   .onCreate(async (user) => {
     console.log("EXCUSE ME WHY ARENT YOU LOGGING");
     try {

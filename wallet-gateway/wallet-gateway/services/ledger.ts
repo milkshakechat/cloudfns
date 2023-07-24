@@ -661,7 +661,7 @@ export const _createTransaction = async (
                                             : `Tx Success! ${args.title}`,
                                         route: args.purchaseManifestID
                                             ? `/app/wallet/purchase/${args.purchaseManifestID}`
-                                            : `/app/wallet`,
+                                            : `/app/wallet?view=trading`,
                                     },
                                 },
                                 shouldPush: true,
@@ -677,7 +677,7 @@ export const _createTransaction = async (
                                             : `Tx Success! ${args.title}`,
                                         route: args.purchaseManifestID
                                             ? `/app/wallet/purchase/${args.purchaseManifestID}`
-                                            : `/app/wallet`,
+                                            : `/app/wallet?view=escrow`,
                                     },
                                 },
                                 shouldPush: true,
