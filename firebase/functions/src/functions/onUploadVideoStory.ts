@@ -25,7 +25,7 @@ dotenv.config();
  * FFMPEG only works on Node16 cloud functions!
  */
 export const onuploadvideostory = onObjectFinalized(
-  { bucket: config.FIREBASE.storageBucket },
+  { bucket: config.FIREBASE.storageBucket, timeoutSeconds: 540 },
   async (event) => {
     console.log(`onUploadVideoStory... ${new Date().toISOString()}}`);
 

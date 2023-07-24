@@ -94,7 +94,7 @@ export const onpurchaseintentsuccess = onRequest(
         // no invoice means its a one-time charge
         // also assume all top-ups are one-time charges
         if (intent.invoice === null) {
-          console.log("This appears to be a one-time charge");
+          console.log("This appears to be a charge without an invoice");
           console.log("querying... listFirestoreDocs(purchaseManifests)");
           const purchaseManifests =
             await listFirestoreDocs<PurchaseMainfest_Firestore>({
@@ -159,7 +159,7 @@ export const onpurchaseintentsuccess = onRequest(
               },
               collection: FirestoreCollection.PURCHASE_MANIFESTS,
             });
-            const txs = confirmChargeSuccessSyncQLDB({
+            const txs = await confirmChargeSuccessSyncQLDB({
               transactions: [_pureTopUpTx],
             });
             console.log("txs finished:", txs);
@@ -324,7 +324,7 @@ export const onpurchaseintentsuccess = onRequest(
           console.log(
             `confirmChargeSuccessSyncQLDB... with ${transactions.length} tx`
           );
-          const txs = confirmChargeSuccessSyncQLDB({
+          const txs = await confirmChargeSuccessSyncQLDB({
             transactions,
           });
           console.log("txs finished:", txs);
@@ -521,7 +521,7 @@ export const onpurchaseintentsuccess = onRequest(
             _spendTx,
           ];
           console.log("savings to quantum...");
-          const txs = confirmChargeSuccessSyncQLDB(
+          const txs = await confirmChargeSuccessSyncQLDB(
             {
               transactions,
             },

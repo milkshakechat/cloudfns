@@ -14,7 +14,7 @@ import {
 
 // request.body = https://sendbird.com/docs/chat/v3/platform-api/webhook/events/group-channel#2-group-channel-message-send
 export const sendbirdpushnotifications = onRequest(
-  { cors: ["sendbird.com"] },
+  { cors: ["sendbird.com"], timeoutSeconds: 300 },
   async (request, response) => {
     console.log("----> sendbirdPushNotifications");
     response.status(200).send("OK");
