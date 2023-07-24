@@ -14,13 +14,13 @@ import {
 } from "@milkshakechat/helpers";
 import { generateAvailablePlaceholderNames } from "../utils/username";
 import { createFirestoreTimestamp } from "../services/firestore";
-import { sleep } from "../utils/utils";
 import { createCustomerStripe, initStripe } from "../services/stripe";
 import { createNewUserWallets } from "../services/ledger";
 
 export const createuserfirestore = functions.auth
   .user()
   .onCreate(async (user) => {
+    console.log("EXCUSE ME WHY ARENT YOU LOGGING");
     try {
       logger.log("Creating firestore record for user: ", user.uid);
       const { username, displayName } =
@@ -61,7 +61,6 @@ export const createuserfirestore = functions.auth
       logger.log("User document written with ID: ", user.uid);
       // logger.log("Wallet document written with ID: ", walletID);
       await initStripe();
-      await sleep(1000); // sleep 5 seconds to allow firestore to write
       console.log("Creating stripe customer...");
       // create stripe customer
       await createCustomerStripe({

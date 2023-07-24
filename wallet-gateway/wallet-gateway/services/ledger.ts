@@ -579,7 +579,8 @@ export const _createTransaction = async (
                     `
             UPDATE Wallets SET
             balance = ${senderWalletUpdatedBalance},
-            mostRecentTransactionID = '${tx.id}'
+            mostRecentTransactionID = '${tx.id}',
+            mostRecentTransactionNote = '${tx.title}'
             WHERE walletAliasID = '${args.senderWallet}'
           `,
                 );
@@ -588,7 +589,8 @@ export const _createTransaction = async (
                     `
               UPDATE Wallets SET
               balance = ${receiverWalletUpdatedBalance},
-              mostRecentTransactionID = '${tx.id}'
+              mostRecentTransactionID = '${tx.id}',
+              mostRecentTransactionNote = '${tx.title}'
               WHERE walletAliasID = '${args.receiverWallet}'
           `,
                 );
@@ -652,11 +654,11 @@ export const _createTransaction = async (
                                 recipientUserID: senderOwnerID,
                                 notification: {
                                     data: {
-                                        title: `Tx Success! ${args.title}`,
+                                        body: `Tx Success! ${args.title}`,
                                         image: args.thumbnail || placeholderWishlistGraphic,
-                                        body: explanations[args.senderWallet]
-                                            ? explanations[args.senderWallet].explanation || ''
-                                            : '',
+                                        title: explanations[args.senderWallet]
+                                            ? `Tx Success! ${explanations[args.senderWallet].explanation}` || ''
+                                            : `Tx Success! ${args.title}`,
                                         route: args.purchaseManifestID
                                             ? `/app/wallet/purchase/${args.purchaseManifestID}`
                                             : `/app/wallet`,
@@ -668,11 +670,11 @@ export const _createTransaction = async (
                                 recipientUserID: receiverOwnerID,
                                 notification: {
                                     data: {
-                                        title: `Tx Success! ${args.title}`,
+                                        body: `Tx Success! ${args.title}`,
                                         image: args.thumbnail || placeholderWishlistGraphic,
-                                        body: explanations[args.receiverWallet]
-                                            ? explanations[args.receiverWallet].explanation || ''
-                                            : '',
+                                        title: explanations[args.receiverWallet]
+                                            ? `Tx Success! ${explanations[args.receiverWallet].explanation}` || ''
+                                            : `Tx Success! ${args.title}`,
                                         route: args.purchaseManifestID
                                             ? `/app/wallet/purchase/${args.purchaseManifestID}`
                                             : `/app/wallet`,
@@ -861,7 +863,7 @@ export const recallTransaction_QuantumLedger = async (args: RecallTransactionXCl
                         };
                         return {
                             ...e,
-                            explanation: `Got Recalled: ${e.explanation}`,
+                            explanation: `Recalled: ${e.explanation}`,
                             amount: e.amount * -1,
                         };
                     }),

@@ -32,7 +32,7 @@ export const createNewUserWallets = async ({ userID }: { userID: UserID }) => {
     walletAliasID: getUserEscrowWallet(userID),
     note: "Created automatically upon user creation",
     userID,
-    type: WalletType.TRADING,
+    type: WalletType.ESCROW,
   };
   console.log("newTradingWallet", newTradingWallet);
   console.log("newEscrowWallet", newEscrowWallet);
@@ -58,12 +58,15 @@ export const createNewUserWallets = async ({ userID }: { userID: UserID }) => {
   };
 };
 
-export const confirmChargeSuccessSyncQLDB = async ({
-  transactions,
-}: ConfirmChargeXCloudRequestBody) => {
+export const confirmChargeSuccessSyncQLDB = async (
+  { transactions }: ConfirmChargeXCloudRequestBody,
+  providedXCloudSecret?: string
+) => {
   console.log("confirmChargeSuccessSyncQLDB...");
 
-  const xcloudSecret = await getCreateWalletXCloudAWSSecret();
+  const xcloudSecret = providedXCloudSecret
+    ? providedXCloudSecret
+    : await getCreateWalletXCloudAWSSecret();
   // console.log("xcloudSecret", xcloudSecret);
   // console.log(
   //   "config.WALLET_GATEWAY.createWallet.url",

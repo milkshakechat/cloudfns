@@ -37,24 +37,28 @@ export const createCustomerStripe = async ({
   date.setMonth(date.getMonth() + 1);
   date.setDate(1);
   date.setHours(0, 0, 0, 0); // sets the time to 00:00:00
-  const nextFirstOfMonth = date.getTime() / 1000;
+  const nextFirstOfMonth = Math.floor(date.getTime() / 1000);
+  console.log(`nextFirstOfMonth = ${nextFirstOfMonth}`);
 
   const sub = await stripe.subscriptions.create({
-    customer: customer.id, // Replace with your customer id
+    customer: customer.id,
     items: [{ price: config.STRIPE.MAIN_BILLING_CYCLE_PRODUCT_PRICE.id }],
     billing_cycle_anchor: nextFirstOfMonth,
+    proration_behavior: "none",
   });
   console.log("sub", sub);
+  const payload = {
+    stripeMetadata: {
+      stripeCustomerID: customer.id as StripeCustomerID,
+      stripeCustomerSubscriptionID: sub.id as StripeSubscriptionID,
+      hasMerchantPrivilege: false,
+      // defaultPaymentMethodID: "",
+    },
+  };
+
   const updatedUser = await updateFirestoreDoc<UserID, User_Firestore>({
     id: milkshakeUserID,
-    payload: {
-      stripeMetadata: {
-        stripeCustomerID: customer.id as StripeCustomerID,
-        stripeCustomerSubscriptionID: sub.id as StripeSubscriptionID,
-        hasMerchantPrivilege: false,
-        defaultPaymentMethodID: undefined,
-      },
-    },
+    payload,
     collection: FirestoreCollection.USERS,
   });
   return updatedUser;
