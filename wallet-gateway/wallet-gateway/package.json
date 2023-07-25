@@ -19,7 +19,7 @@
     "@aws-sdk/node-http-handler": "^3.370.0",
     "@aws-sdk/smithy-client": "^3.370.0",
     "@google-cloud/secret-manager": "^4.2.2",
-    "@milkshakechat/helpers": "^1.0.228",
+    "@milkshakechat/helpers": "^1.0.238",
     "amazon-qldb-driver-nodejs": "^3.0.1",
     "axios": "^1.4.0",
     "dotenv": "^16.3.1",
