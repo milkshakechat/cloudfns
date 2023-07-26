@@ -51,8 +51,9 @@ const devConfig: ConfigEnv = {
   },
   LEDGER: {
     globalCookieStore: {
-      userID: "store-owner" as UserID,
-      walletAliasID: "milkshake-v0.1_store-wallet" as WalletAliasID,
+      userID: "global-cookie-store-owner" as UserID,
+      walletAliasID:
+        "milkshake-v0.1_global-cookie-store-wallet" as WalletAliasID,
     },
   },
   STRIPE: {
@@ -112,8 +113,9 @@ const stagingConfig: ConfigEnv = {
   },
   LEDGER: {
     globalCookieStore: {
-      userID: "store-owner" as UserID,
-      walletAliasID: "milkshake-v0.1_store-wallet" as WalletAliasID,
+      userID: "global-cookie-store-owner" as UserID,
+      walletAliasID:
+        "milkshake-v0.1_global-cookie-store-wallet" as WalletAliasID,
     },
   },
   STRIPE: {
@@ -173,8 +175,9 @@ const prodConfig: ConfigEnv = {
   },
   LEDGER: {
     globalCookieStore: {
-      userID: "store-owner" as UserID,
-      walletAliasID: "milkshake-v0.1_store-wallet" as WalletAliasID,
+      userID: "global-cookie-store-owner" as UserID,
+      walletAliasID:
+        "milkshake-v0.1_global-cookie-store-wallet" as WalletAliasID,
     },
   },
   STRIPE: {

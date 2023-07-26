@@ -6,7 +6,6 @@ import {
   FirestoreCollection,
   UserID,
   User_Firestore,
-  Username,
   defaultThemeColorHex,
   genderEnum,
   localeEnum,
@@ -38,7 +37,7 @@ export const createuserfirestore = functions
       console.log("escrowWallet", escrowWallet);
       const newUser: User_Firestore = {
         id: user.uid as UserID,
-        username: username as Username,
+        username,
         displayName: displayName,
         bio: "",
         avatar: "",
@@ -58,9 +57,19 @@ export const createuserfirestore = functions
         tradingWallet: tradingWallet.walletAliasID,
         escrowWallet: escrowWallet.walletAliasID,
       };
-
+      const newUserMirror = {
+        id: user.uid as UserID,
+        username,
+        avatar: "",
+      };
       const db = admin.firestore();
-      await db.collection(FirestoreCollection.USERS).doc(user.uid).set(newUser);
+      await Promise.all([
+        db.collection(FirestoreCollection.USERS).doc(user.uid).set(newUser),
+        db
+          .collection(FirestoreCollection.MIRROR_USER)
+          .doc(user.uid)
+          .set(newUserMirror),
+      ]);
       logger.log("User document written with ID: ", user.uid);
       // logger.log("Wallet document written with ID: ", walletID);
       await initStripe();
