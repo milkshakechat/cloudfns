@@ -1,5 +1,5 @@
 import { checkIfUsernameAvailable } from "../services/firestore";
-import { checkIfUsernameIsAllowed } from "@milkshakechat/helpers";
+import { Username, checkIfUsernameIsAllowed } from "@milkshakechat/helpers";
 
 function generateRandom7DigitNumber(): number {
   const min = 1000000; // Smallest 7 digit number
@@ -10,14 +10,14 @@ function generateRandom7DigitNumber(): number {
 const generatePlaceholderNames = () => {
   const suffix = generateRandom7DigitNumber();
   return {
-    username: `user${suffix}`,
+    username: `user${suffix}` as Username,
     displayName: `User ${suffix}`,
   };
 };
 
 export async function generateAvailablePlaceholderNames() {
   let isAvailable = false;
-  let username = "";
+  let username: Username = "" as Username;
   let displayName = "";
 
   while (!isAvailable) {
