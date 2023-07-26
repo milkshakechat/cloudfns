@@ -16,7 +16,8 @@ Config:
 /users/*/avatars,
 /users/*/story/IMAGE,
 /users/*/wishlist,
-/users/*/sticker
+/users/*/sticker,
+/users/*/chatroom
 ```
 - `jpeg` Convert image to preferred types
 - `yes` GIF and WEBP animated option (Optional)
