@@ -61,6 +61,7 @@ export const createuserfirestore = functions
         id: user.uid as UserID,
         username,
         avatar: "",
+        hasPremiumChat: false,
       };
       const db = admin.firestore();
       await Promise.all([
