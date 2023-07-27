@@ -17,6 +17,7 @@ import {
     Transaction_Quantum,
     UserID,
     UserRelationshipHash,
+    User_Firestore,
     WalletID,
     WalletType,
     Wallet_Quantum,
@@ -39,6 +40,7 @@ import {
     UpdateTxWallet_Fireledger,
 } from './mirror-fireledger';
 import { sendNotificationToUser } from './notifications';
+import { getFirestoreDoc } from './firestore';
 
 /**
  * Use the qldbDriver to interact with ledgers
@@ -974,14 +976,14 @@ export const cashOutTransaction_QuantumLedger = async (args: CashOutXCloudReques
     const p: Promise<Transaction_Quantum> = new Promise(async (res, rej) => {
         console.log('cashOutTransaction...');
 
-        // assume recallable
+        // assume cash out able
         try {
             let tx: Transaction_Quantum | undefined;
-            let recallTxData: PostTransactionXCloudRequestBody | undefined;
-            let recallTxID: TransactionID | undefined;
-            let originalSenderWalletUpdatedBalance: number | undefined;
+            let cashOutTxData: PostTransactionXCloudRequestBody | undefined;
+            let cashOutTxID: TransactionID | undefined;
+            let tradingWalletUpdatedBalance: number | undefined;
             let originalReceiverWalletUpdatedBalance: number | undefined;
-            let _originalSenderWalletQLDB: Wallet_Quantum | undefined;
+            let _tradingWalletQLDB: Wallet_Quantum | undefined;
             let _originalReceiverWalletQLDB: Wallet_Quantum | undefined;
 
             const txs = await ListMirrorTx_Fireledger({
@@ -995,8 +997,15 @@ export const cashOutTransaction_QuantumLedger = async (args: CashOutXCloudReques
                 return;
             }
 
-            const originalSenderUserID = _tx.senderUserID;
-            const originalReceiverUserID = _tx.recieverUserID;
+            const spotlightUser = await getFirestoreDoc<UserID, User_Firestore>({
+                id: _tx.recieverUserID,
+                collection: FirestoreCollection.USERS,
+            });
+            if (!spotlightUser) {
+                console.log(`spotlightUser is null`);
+                rej(`spotlightUser is null`);
+                return;
+            }
 
             let _callback = async () => {
                 console.log(`_callback`);
@@ -1030,17 +1039,18 @@ export const cashOutTransaction_QuantumLedger = async (args: CashOutXCloudReques
                     rej(`Already redeemed tx=${args.transactionID}`);
                     return;
                 }
-                const [originalSenderWalletQLDB, originalReceiverWalletQLDB] = await Promise.all([
+                const [tradingWalletQLDB, originalReceiverWalletQLDB] = await Promise.all([
                     getWallet_QuantumLedger({
-                        walletAliasID: tx.sendingWallet,
+                        walletAliasID: spotlightUser.tradingWallet,
                     }),
                     getWallet_QuantumLedger({
                         walletAliasID: tx.recievingWallet,
                     }),
                 ]);
-                _originalSenderWalletQLDB = originalSenderWalletQLDB;
+                // _originalSenderWalletQLDB = originalSenderWalletQLDB;
+                _tradingWalletQLDB = tradingWalletQLDB;
                 _originalReceiverWalletQLDB = originalReceiverWalletQLDB;
-                if (!originalSenderWalletQLDB || !originalReceiverWalletQLDB) {
+                if (!tradingWalletQLDB || !originalReceiverWalletQLDB) {
                     console.log(`a wallet was null`);
                     rej(`a wallet was null`);
                     return;
@@ -1050,12 +1060,11 @@ export const cashOutTransaction_QuantumLedger = async (args: CashOutXCloudReques
                     return;
                 }
 
-                originalSenderWalletUpdatedBalance =
-                    parseFloat(`${originalSenderWalletQLDB.balance}`) + parseFloat(`${tx.amount}`);
+                tradingWalletUpdatedBalance = parseFloat(`${tradingWalletQLDB.balance}`) + parseFloat(`${tx.amount}`);
                 originalReceiverWalletUpdatedBalance =
                     parseFloat(`${originalReceiverWalletQLDB.balance}`) - parseFloat(`${tx.amount}`);
 
-                recallTxData = {
+                cashOutTxData = {
                     title: `Cash Out: "${tx.title}"`,
                     note: `Cash Out: "${tx.note}"`,
                     purchaseManifestID: tx.purchaseManifestID,
@@ -1063,21 +1072,23 @@ export const cashOutTransaction_QuantumLedger = async (args: CashOutXCloudReques
                     type: TransactionType.CASH_OUT,
                     amount: tx.amount,
                     senderWallet: tx.recievingWallet,
-                    receiverWallet: tx.sendingWallet,
-                    senderUserID: originalReceiverUserID,
-                    receiverUserID: originalSenderUserID,
-                    explanations: Object.values(tx.explanations).map((ex) => {
-                        const e = ex as unknown as {
-                            walletAliasID: WalletAliasID;
-                            explanation: string;
-                            amount: number;
-                        };
-                        return {
-                            ...e,
-                            explanation: `Cash Out: ${e.explanation}`,
-                            amount: e.amount * -1,
-                        };
-                    }),
+                    receiverWallet: spotlightUser.tradingWallet,
+                    senderUserID: spotlightUser.id,
+                    receiverUserID: spotlightUser.id,
+                    explanations: [
+                        {
+                            walletAliasID: tx.explanations[tx.recievingWallet].walletAliasID,
+                            explanation: `Withdraw: ${tx.explanations[tx.recievingWallet].explanation}`,
+                            amount: Math.abs(tx.explanations[tx.recievingWallet].amount) * -1,
+                        },
+                        {
+                            walletAliasID: spotlightUser.tradingWallet,
+                            explanation: `Withdrawn from holding wallet: ${
+                                tx.explanations[tx.recievingWallet].explanation
+                            }`,
+                            amount: Math.abs(tx.amount),
+                        },
+                    ],
                     cashOutMetadata: {
                         initiatorWallet: args.initiatorWallet,
                         originalTransactionID: tx.id,
@@ -1087,19 +1098,19 @@ export const cashOutTransaction_QuantumLedger = async (args: CashOutXCloudReques
                     cashOutTransactionID: tx.id,
                     gotCashOut: true,
                 };
-                console.log(`recallTxData`, recallTxData);
-                if (!recallTxData) {
-                    rej(`Failed to create recall for transaction tx=${args.transactionID}`);
+                console.log(`cashOutTxData`, cashOutTxData);
+                if (!cashOutTxData) {
+                    rej(`Failed to create cash out for transaction tx=${args.transactionID}`);
                     return;
                 }
-                const { tx: recall_Tx, callback } = await _createTransaction(recallTxData, txn, {
-                    receiverOwnerID: originalSenderUserID,
-                    senderOwnerID: originalReceiverUserID,
+                const { tx: cashOut_Tx, callback } = await _createTransaction(cashOutTxData, txn, {
+                    receiverOwnerID: spotlightUser.id,
+                    senderOwnerID: spotlightUser.id,
                 });
-                console.log(`recall_Tx`, recall_Tx);
-                recallTxID = recall_Tx.id;
+                console.log(`cashOut_Tx`, cashOut_Tx);
+                cashOutTxID = cashOut_Tx.id;
                 _callback = callback;
-                if (!recall_Tx) {
+                if (!cashOut_Tx) {
                     rej(`Failed to create recall for transaction tx=${args.transactionID}`);
                     return;
                 }
@@ -1107,7 +1118,7 @@ export const cashOutTransaction_QuantumLedger = async (args: CashOutXCloudReques
                     `
                     UPDATE Transactions SET
                     gotRecalled = true,
-                    cashOutTransactionID = '${recall_Tx.id}'
+                    cashOutTransactionID = '${cashOut_Tx.id}'
                     WHERE id = '${tx.id}'
                   `,
                 );
@@ -1115,7 +1126,7 @@ export const cashOutTransaction_QuantumLedger = async (args: CashOutXCloudReques
                 console.log('updatedTx', updatedTx);
 
                 console.log('Executed update query');
-                const resultSet = await txn.execute(`SELECT * FROM Transactions WHERE id = ?`, recall_Tx.id);
+                const resultSet = await txn.execute(`SELECT * FROM Transactions WHERE id = ?`, cashOut_Tx.id);
                 console.log('Executed select query');
                 const recallDoc = resultSet.getResultList()[0];
                 console.log(`Successfully updated document into table: ${JSON.stringify(recallDoc)}`);
@@ -1126,21 +1137,21 @@ export const cashOutTransaction_QuantumLedger = async (args: CashOutXCloudReques
             if (
                 !rtx ||
                 !tx ||
-                !recallTxData ||
-                !recallTxID ||
-                originalSenderWalletUpdatedBalance === undefined ||
+                !cashOutTxData ||
+                !cashOutTxID ||
+                tradingWalletUpdatedBalance === undefined ||
                 originalReceiverWalletUpdatedBalance === undefined ||
-                !_originalSenderWalletQLDB ||
+                !_tradingWalletQLDB ||
                 !_originalReceiverWalletQLDB
             ) {
                 console.log(`
             rtx = ${JSON.stringify(rtx)}
             tx = ${JSON.stringify(tx)}
-            recallTxData = ${JSON.stringify(recallTxData)}
-            recallTxID = ${recallTxID}
-            originalSenderWalletUpdatedBalance = ${originalSenderWalletUpdatedBalance}
+            recallTxData = ${JSON.stringify(cashOutTxData)}
+            recallTxID = ${cashOutTxID}
+            tradingWalletUpdatedBalance = ${tradingWalletUpdatedBalance}
             originalReceiverWalletUpdatedBalance = ${originalReceiverWalletUpdatedBalance}
-            _originalSenderWalletQLDB = ${JSON.stringify(_originalSenderWalletQLDB)}
+            _tradingWalletQLDB = ${JSON.stringify(_tradingWalletQLDB)}
             _originalReceiverWalletQLDB = ${JSON.stringify(_originalReceiverWalletQLDB)}
             `);
                 rej('something was null after QLDB');
@@ -1154,7 +1165,7 @@ export const cashOutTransaction_QuantumLedger = async (args: CashOutXCloudReques
                         walletAliasID: tx.sendingWallet,
                     }),
                     cashOutTransactionID: getMirrorTransactionID({
-                        txID: recallTxID,
+                        txID: cashOutTxID,
                         walletAliasID: tx.sendingWallet,
                     }),
                 }),
@@ -1164,7 +1175,7 @@ export const cashOutTransaction_QuantumLedger = async (args: CashOutXCloudReques
                         walletAliasID: tx.recievingWallet,
                     }),
                     cashOutTransactionID: getMirrorTransactionID({
-                        txID: recallTxID,
+                        txID: cashOutTxID,
                         walletAliasID: tx.recievingWallet,
                     }),
                 }),
