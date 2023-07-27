@@ -45,5 +45,10 @@ service firebase.storage {
     match /users/{userId}/sticker/resized-media/{allPaths=**} {
       allow read;
     }
+    
+    // Allow public read access to the folder /users/{userId}/chatroom/resized-media
+    match /users/{userId}/chatroom/resized-media/{allPaths=**} {
+      allow read;
+    }
   }
 }
