@@ -10,6 +10,12 @@ import {
     convertFrequencySubscriptionToMonthly,
     cookieToUSD,
     Transaction_Quantum,
+    PurchaseMainfestID,
+    UserID,
+    User_Firestore,
+    ChatRoomID,
+    ChatRoom_Firestore,
+    TransactionType,
 } from '@milkshakechat/helpers';
 import {
     _createTransaction,
@@ -18,8 +24,10 @@ import {
     qldbDriver,
 } from '../../services/ledger';
 import { initFirebase } from '../../services/firebase';
-import { listFirestoreDocs } from '../../services/firestore';
+import { getFirestoreDoc, listFirestoreDocs } from '../../services/firestore';
 import { TransactionExecutor } from 'amazon-qldb-driver-nodejs';
+import { sendPuppetUserMessageToChat, sendSystemMessageToChat } from '../../services/sendbird';
+import { isWithin24HoursAgo } from '../../utils/utils';
 
 /**
  *
@@ -97,6 +105,45 @@ export const confirmCharge = async (event: APIGatewayProxyEvent): Promise<APIGat
             }
         });
         await _callback1();
+        await Promise.all(
+            createdTxs
+                .filter((tx) => tx.purchaseManifestID && tx.type === TransactionType.DEAL)
+                .map(async (tx) => {
+                    const pm = await getFirestoreDoc<PurchaseMainfestID, PurchaseMainfest_Firestore>({
+                        id: tx.purchaseManifestID as PurchaseMainfestID,
+                        collection: FirestoreCollection.PURCHASE_MANIFESTS,
+                    });
+                    if (pm.chatRoomID) {
+                        const [buyerUser, sellerUser, chatRoom] = await Promise.all([
+                            getFirestoreDoc<UserID, User_Firestore>({
+                                id: pm.buyerUserID,
+                                collection: FirestoreCollection.USERS,
+                            }),
+                            getFirestoreDoc<UserID, User_Firestore>({
+                                id: pm.sellerUserID,
+                                collection: FirestoreCollection.USERS,
+                            }),
+                            getFirestoreDoc<ChatRoomID, ChatRoom_Firestore>({
+                                id: pm.chatRoomID as ChatRoomID,
+                                collection: FirestoreCollection.CHAT_ROOMS,
+                            }),
+                        ]);
+                        console.log(`Found a chat room! ${chatRoom.title}`);
+
+                        await sendSystemMessageToChat({
+                            message: `🍪 ${tx.title}`,
+                            chatRoom,
+                        });
+                        if (pm.buyerNote && isWithin24HoursAgo(new Date((pm.createdAt as any)?.seconds * 1000))) {
+                            await sendPuppetUserMessageToChat({
+                                message: pm.buyerNote,
+                                chatRoom,
+                                sender: buyerUser,
+                            });
+                        }
+                    }
+                }),
+        );
         const resp = {
             statusCode: 200,
             body: JSON.stringify({

@@ -1,10 +1,21 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { PostTransactionXCloudRequestBody, checkIfTradingWallet, checkIfStoreWallet } from '@milkshakechat/helpers';
+import {
+    PostTransactionXCloudRequestBody,
+    checkIfTradingWallet,
+    checkIfStoreWallet,
+    ChatRoom_Firestore,
+    ChatRoomID,
+    FirestoreCollection,
+    User_Firestore,
+    UserID,
+} from '@milkshakechat/helpers';
 import {
     createTransaction_QuantumLedger as createTransactionQLDB,
     initQuantumLedger_Drivers,
 } from '../../services/ledger';
 import { initFirebase } from '../../services/firebase';
+import { getFirestoreDoc } from '../../services/firestore';
+import { sendPuppetUserMessageToChat, sendSystemMessageToChat } from '../../services/sendbird';
 
 /**
  *
@@ -67,6 +78,37 @@ export const postTransaction = async (event: APIGatewayProxyEvent): Promise<APIG
                 }),
             };
         }
+        console.log(`---> body.chatRoomID`, body.chatRoomID);
+        if (body.chatRoomID) {
+            const [senderUser, receiverUser, chatRoom] = await Promise.all([
+                getFirestoreDoc<UserID, User_Firestore>({
+                    id: body.senderUserID as UserID,
+                    collection: FirestoreCollection.USERS,
+                }),
+                getFirestoreDoc<UserID, User_Firestore>({
+                    id: body.receiverUserID as UserID,
+                    collection: FirestoreCollection.USERS,
+                }),
+                getFirestoreDoc<ChatRoomID, ChatRoom_Firestore>({
+                    id: body.chatRoomID as ChatRoomID,
+                    collection: FirestoreCollection.CHAT_ROOMS,
+                }),
+            ]);
+            console.log(`Found a chat room! ${chatRoom.title}`);
+            const message = body.transferMetadata?.senderNote || body.salesMetadata?.buyerNote || body.note;
+            await sendSystemMessageToChat({
+                message: `🍪 ${body.title}`,
+                chatRoom,
+            });
+            if (body.note) {
+                await sendPuppetUserMessageToChat({
+                    message,
+                    chatRoom,
+                    sender: senderUser,
+                });
+            }
+        }
+
         const resp = {
             statusCode: 200,
             body: JSON.stringify({

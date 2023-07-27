@@ -22,3 +22,10 @@ export function findUndefinedProperties(obj: any, path = '') {
         }
     }
 }
+
+export function isWithin24HoursAgo(date: Date) {
+    const now = new Date();
+    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+    return date >= oneDayAgo;
+}
