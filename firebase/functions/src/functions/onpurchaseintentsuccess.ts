@@ -201,7 +201,7 @@ export const onpurchaseintentsuccess = onRequest(
           ) {
             titleTopOff = `${titleTopOff} - Top-up ${cookies} cookies`;
           } else {
-            titleTopOff = `${titleTopOff} - Prorated top-up ${cookies} cookies for ${daysUntilNextCycle} days`;
+            titleTopOff = `${titleTopOff} - Top-up ${cookies} cookies for prorated ${daysUntilNextCycle} days`;
           }
           const _topUpTx: PostTransactionXCloudRequestBody = {
             title: titleTopOff,
@@ -252,9 +252,9 @@ export const onpurchaseintentsuccess = onRequest(
           if (
             purchaseManifest.agreedBuyFrequency === WishBuyFrequency.ONE_TIME
           ) {
-            titleAutoSpend = `${titleTopOff} - Auto-spend ${cookies} cookies`;
+            titleAutoSpend = `${purchaseManifest.title} - @${buyerUser.username} auto-spent ${cookies} cookies`;
           } else {
-            titleAutoSpend = `${titleTopOff} - Prorated auto-spend ${cookies} cookies for ${daysUntilNextCycle} days`;
+            titleAutoSpend = `${purchaseManifest.title} - @${buyerUser.username} auto-spent ${cookies} cookies for prorated ${daysUntilNextCycle} days`;
           }
           const _spendTx: PostTransactionXCloudRequestBody = {
             title: titleAutoSpend,
@@ -304,6 +304,7 @@ export const onpurchaseintentsuccess = onRequest(
               originalBuyFrequency: purchaseManifest.originalBuyFrequency,
             },
             sendPushNotif: true,
+            chatRoomID: purchaseManifest.chatRoomID,
           };
           console.log("_spendTx", _spendTx);
           const transactions: PostTransactionXCloudRequestBody[] = [
@@ -482,7 +483,7 @@ export const onpurchaseintentsuccess = onRequest(
           };
           console.log(`_topUpTx subitem = ${JSON.stringify(_topUpTx.title)}`);
           const _spendTx: PostTransactionXCloudRequestBody = {
-            title: `Monthly auto spend ${pm.assumedMonthlyCookiePrice} cookies by buyer @${buyerUser.username} for "${pm.title}" sold by @${sellerUser.username}`,
+            title: `Monthly ${pm.assumedMonthlyCookiePrice} cookies auto-spent by @${buyerUser.username} for "${pm.title}"`,
             note: `Monthly auto-spend of ${pm.assumedMonthlyCookiePrice} cookies for: ${pm.note}`,
             purchaseManifestID: pm.id,
             attribution: "",
@@ -514,6 +515,7 @@ export const onpurchaseintentsuccess = onRequest(
               agreedBuyFrequency: pm.agreedBuyFrequency,
               originalBuyFrequency: pm.originalBuyFrequency,
             },
+            chatRoomID: pm.chatRoomID,
           };
           console.log(`_spendTx subitem = ${JSON.stringify(_spendTx.title)}`);
           const transactions: PostTransactionXCloudRequestBody[] = [
