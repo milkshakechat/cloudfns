@@ -466,12 +466,18 @@ export const _createTransaction = async (
         }
 
         const [senderWalletQLDB, receiverWalletQLDB] = await Promise.all([
-            getWallet_QuantumLedger({
-                walletAliasID: args.senderWallet,
-            }),
-            getWallet_QuantumLedger({
-                walletAliasID: args.receiverWallet,
-            }),
+            _getWallet(
+                {
+                    walletAliasID: args.senderWallet,
+                },
+                txn,
+            ),
+            _getWallet(
+                {
+                    walletAliasID: args.receiverWallet,
+                },
+                txn,
+            ),
         ]);
         console.log(`senderWalletQLDB`, senderWalletQLDB);
         console.log(`receiverWalletQLDB`, receiverWalletQLDB);
@@ -821,12 +827,18 @@ export const recallTransaction_QuantumLedger = async (args: RecallTransactionXCl
                     return;
                 }
                 const [originalSenderWalletQLDB, originalReceiverWalletQLDB] = await Promise.all([
-                    getWallet_QuantumLedger({
-                        walletAliasID: tx.sendingWallet,
-                    }),
-                    getWallet_QuantumLedger({
-                        walletAliasID: tx.recievingWallet,
-                    }),
+                    _getWallet(
+                        {
+                            walletAliasID: tx.sendingWallet,
+                        },
+                        txn,
+                    ),
+                    _getWallet(
+                        {
+                            walletAliasID: tx.recievingWallet,
+                        },
+                        txn,
+                    ),
                 ]);
                 _originalSenderWalletQLDB = originalSenderWalletQLDB;
                 _originalReceiverWalletQLDB = originalReceiverWalletQLDB;
@@ -1040,12 +1052,18 @@ export const cashOutTransaction_QuantumLedger = async (args: CashOutXCloudReques
                     return;
                 }
                 const [tradingWalletQLDB, originalReceiverWalletQLDB] = await Promise.all([
-                    getWallet_QuantumLedger({
-                        walletAliasID: spotlightUser.tradingWallet,
-                    }),
-                    getWallet_QuantumLedger({
-                        walletAliasID: tx.recievingWallet,
-                    }),
+                    _getWallet(
+                        {
+                            walletAliasID: spotlightUser.tradingWallet,
+                        },
+                        txn,
+                    ),
+                    _getWallet(
+                        {
+                            walletAliasID: tx.recievingWallet,
+                        },
+                        txn,
+                    ),
                 ]);
                 // _originalSenderWalletQLDB = originalSenderWalletQLDB;
                 _tradingWalletQLDB = tradingWalletQLDB;
