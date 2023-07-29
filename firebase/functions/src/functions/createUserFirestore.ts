@@ -56,6 +56,9 @@ export const createuserfirestore = functions
         usernameLastUpdated: now,
         tradingWallet: tradingWallet.walletAliasID,
         escrowWallet: escrowWallet.walletAliasID,
+        prefAboutMe: "",
+        prefLookingFor: "",
+        prefGeoBias: false,
       };
       const newUserMirror = {
         id: user.uid as UserID,
