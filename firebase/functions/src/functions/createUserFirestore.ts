@@ -3,6 +3,7 @@ import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 admin.initializeApp();
 import {
+  CurrencyEnum,
   FirestoreCollection,
   UserID,
   User_Firestore,
@@ -51,6 +52,7 @@ export const createuserfirestore = functions
         privacyMode: privacyModeEnum.private,
         themeColor: defaultThemeColorHex,
         language: localeEnum.english,
+        currency: CurrencyEnum.USD,
         gender: genderEnum.other,
         interestedIn: [],
         usernameLastUpdated: now,
