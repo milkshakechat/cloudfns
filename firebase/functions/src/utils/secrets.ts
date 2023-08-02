@@ -103,3 +103,12 @@ export const getStripeWebhookSecret = async () => {
   });
   return stripeWebhookSecret;
 };
+
+export const getSendbirdSecret = async () => {
+  const sendbirdSecret = await accessSecretVersion({
+    projectId: config.GCLOUD.projectId,
+    secretId: config.SECRETS.SENDBIRD_API.secretId,
+    versionId: config.SECRETS.SENDBIRD_API.versionId,
+  });
+  return sendbirdSecret;
+};
