@@ -230,6 +230,7 @@ export const domValueTransactionToTyped = (result: dom.Value) => {
                   }
                 : null,
         },
+        isPermaTransfer: (result.get('isPermaTransfer')?.booleanValue() || false) as boolean,
     };
     return tx;
 };
@@ -421,13 +422,61 @@ export const createTransaction_QuantumLedger = async (
                 });
                 console.log('tx', tx);
                 if (!tx) {
-                    rej(`Failed to create transaction: ${args.title}`);
+                    rej(`Failed to post transactio: ${args.title}`);
                     return;
                 }
                 return { tx, callback };
             });
             if (!qldbRes) {
-                rej(`Failed to create transaction: ${args.title}`);
+                rej(`Failed to send post transaction: ${args.title}`);
+                return;
+            } else {
+                const { tx, callback } = qldbRes;
+                await callback();
+                res(tx);
+            }
+        } catch (e) {
+            console.log('post transaction error', e);
+            rej(e);
+        }
+    });
+    return p;
+};
+
+export const permaTransfer_QuantumLedger = async (
+    args: PostTransactionXCloudRequestBody,
+): Promise<Transaction_Quantum> => {
+    const p: Promise<Transaction_Quantum> = new Promise(async (res, rej) => {
+        console.log('permaTransfer...');
+        const [senderWalletMirror, receiverWalletMirror] = await Promise.all([
+            GetMirrorWallet_Fireledger({
+                walletAliasID: args.senderWallet,
+            }),
+            GetMirrorWallet_Fireledger({
+                walletAliasID: args.receiverWallet,
+            }),
+        ]);
+        try {
+            const qldbRes = await qldbDriver.executeLambda(async (txn: TransactionExecutor) => {
+                console.log('txn.executeLambda...');
+                const { tx, callback } = await _createTransaction(
+                    args,
+                    txn,
+                    {
+                        receiverOwnerID: receiverWalletMirror.ownerID,
+                        senderOwnerID: senderWalletMirror.ownerID,
+                    },
+                    true,
+                );
+                console.log('tx', tx);
+                if (!tx) {
+                    rej(`Failed to post transaction: ${args.title}`);
+                    return;
+                }
+                return { tx, callback };
+            });
+            if (!qldbRes) {
+                rej(`Failed to send post transaction: ${args.title}`);
                 return;
             } else {
                 const { tx, callback } = qldbRes;
@@ -446,7 +495,9 @@ export const _createTransaction = async (
     args: PostTransactionXCloudRequestBody,
     txn: TransactionExecutor,
     { receiverOwnerID, senderOwnerID }: { receiverOwnerID: UserID; senderOwnerID: UserID },
+    isPermaTransfer?: boolean,
 ): Promise<{ tx: Transaction_Quantum; callback: () => Promise<void> }> => {
+    console.log(`isPermaTransfer = ${isPermaTransfer}`);
     const p: Promise<{ tx: Transaction_Quantum; callback: () => Promise<void> }> = new Promise(async (res, rej) => {
         console.log('txn.executeLambda...');
 
@@ -509,12 +560,6 @@ export const _createTransaction = async (
         const transactionMetadata: TransactionMetadata = {
             transactionID: id,
         };
-        if (txType === TransactionType.DEAL && args.salesMetadata) {
-            transactionMetadata.salesMetadata = args.salesMetadata;
-        }
-        if (txType === TransactionType.TOP_UP && args.topUpMetadata) {
-            transactionMetadata.topUpMetadata = args.topUpMetadata;
-        }
         if (txType === TransactionType.TRANSFER && args.transferMetadata) {
             transactionMetadata.transferMetadata = args.transferMetadata;
         }
@@ -541,8 +586,8 @@ export const _createTransaction = async (
             note: args.note,
             createdAt: now,
             // foriegn keys
-            sendingWallet: args.senderWallet,
-            recievingWallet: args.receiverWallet, // escrow wallet
+            sendingWallet: args.senderWallet, // trading wallet
+            recievingWallet: args.receiverWallet, // trading wallet
             // archive log with pov (may include future creditors such as club boss)
             explanations,
             amount: args.amount,
@@ -557,6 +602,7 @@ export const _createTransaction = async (
                 ? args.cashOutMetadata.originalTransactionID
                 : ('' as TransactionID),
             metadata: transactionMetadata,
+            isPermaTransfer: isPermaTransfer ? isPermaTransfer : false,
         };
         if (args.purchaseManifestID) {
             doc.purchaseManifestID = args.purchaseManifestID;
@@ -624,6 +670,7 @@ export const _createTransaction = async (
                             cashOutTransactionID: args.cashOutMetadata?.originalTransactionID,
                             referenceID: args.referenceID,
                             purchaseManifestID: args.purchaseManifestID,
+                            isPermaTransfer: isPermaTransfer ? isPermaTransfer : false,
                         }),
                         CreateMirrorTx_Fireledger({
                             txID: id,
@@ -642,6 +689,7 @@ export const _createTransaction = async (
                             cashOutTransactionID: args.cashOutMetadata?.originalTransactionID,
                             referenceID: args.referenceID,
                             purchaseManifestID: args.purchaseManifestID,
+                            isPermaTransfer: isPermaTransfer ? isPermaTransfer : false,
                         }),
                         UpdateMirrorWallet_Fireledger({
                             balance: senderWalletUpdatedBalance,
@@ -804,6 +852,11 @@ export const recallTransaction_QuantumLedger = async (args: RecallTransactionXCl
                 if (tx.gotCashOut) {
                     console.log(`Already redeemed tx=${args.transactionID}`);
                     rej(`Already redeemed tx=${args.transactionID}`);
+                    return;
+                }
+                if (tx.isPermaTransfer) {
+                    console.log(`Cannot recall a permaTransfer. tx=${args.transactionID}`);
+                    rej(`Cannot recall a permaTransfer. tx=${args.transactionID}`);
                     return;
                 }
                 console.log(`
@@ -1049,6 +1102,11 @@ export const cashOutTransaction_QuantumLedger = async (args: CashOutXCloudReques
                 if (tx.gotCashOut) {
                     console.log(`Already redeemed tx=${args.transactionID}`);
                     rej(`Already redeemed tx=${args.transactionID}`);
+                    return;
+                }
+                if (tx.isPermaTransfer) {
+                    console.log(`Cannot cash out a permaTransfer. tx=${args.transactionID}`);
+                    rej(`Cannot cash out a permaTransfer. tx=${args.transactionID}`);
                     return;
                 }
                 const [tradingWalletQLDB, originalReceiverWalletQLDB] = await Promise.all([
