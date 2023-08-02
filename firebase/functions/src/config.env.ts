@@ -25,6 +25,10 @@ const devConfig: ConfigEnv = {
       secretId: "stripe-webhook-payment-intent-secret",
       versionId: "latest",
     },
+    SENDBIRD_API: {
+      secretId: "sendbird-api",
+      versionId: "latest",
+    },
   },
   FIREBASE: {
     apiKey: "AIzaSyAqVL1P4PsE40Bd-Mu8CnqwczpC-hSTaz0",
@@ -85,6 +89,10 @@ const stagingConfig: ConfigEnv = {
     },
     STRIPE_WEBHOOK: {
       secretId: "stripe-webhook-payment-intent-secret",
+      versionId: "latest",
+    },
+    SENDBIRD_API: {
+      secretId: "sendbird-api",
       versionId: "latest",
     },
   },
@@ -149,6 +157,10 @@ const prodConfig: ConfigEnv = {
       secretId: "stripe-webhook-payment-intent-secret",
       versionId: "latest",
     },
+    SENDBIRD_API: {
+      secretId: "sendbird-api",
+      versionId: "latest",
+    },
   },
   FIREBASE: {
     apiKey: "AIzaSyAqVL1P4PsE40Bd-Mu8CnqwczpC-hSTaz0",
@@ -201,6 +213,7 @@ interface ConfigEnv {
     STRIPE_SERVER_KEY: SecretConfig;
     CREATE_WALLET_XCLOUD_AWS: SecretConfig;
     STRIPE_WEBHOOK: SecretConfig;
+    SENDBIRD_API: SecretConfig;
   };
   FIREBASE: {
     apiKey: string;

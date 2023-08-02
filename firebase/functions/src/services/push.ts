@@ -224,6 +224,17 @@ export const handleSendBirdToFCM = async ({
   console.log(
     `bulkSendReciepts.successCount = ${bulkSendReciepts.successCount}, bulkSendReciepts.failureCount = ${bulkSendReciepts.failureCount}`
   );
+  if (Date.now() / 1000 - (chatRoom.lastUpdated as any).seconds > 15) {
+    // update the lastUpdated timestamp
+    await updateFirestoreDoc<ChatRoomID, ChatRoom_Firestore>({
+      id: chatRoom.id,
+      payload: {
+        lastUpdated: createFirestoreTimestamp(),
+        chatPreview: `${payload.payload.message.slice(0, 20)}...`,
+      },
+      collection: FirestoreCollection.CHAT_ROOMS,
+    });
+  }
   // const bulkSendReciepts = await getMessaging(firebaseApp).sendAll(messages);
   // await Promise.all(
   //   pushTokens.map(async (pushToken) => {
