@@ -141,6 +141,30 @@ Resources:
         Sourcemap: true
         EntryPoints:
         - app.ts
+  PermaTransferFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: wallet-gateway/  # Your code folder for create wallet
+      Handler: app.permaTransfer  # Your handler function for create wallet
+      Runtime: nodejs18.x
+      MemorySize: 512
+      Architectures:
+      - x86_64
+      Events:
+        PostTransaction:
+          Type: Api
+          Properties:
+            Path: /permatransfer
+            Method: post
+            RestApiId: !Ref MyAuthApi
+    Metadata: 
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2020
+        Sourcemap: true
+        EntryPoints:
+        - app.ts
   ConfirmChargeFunction:
     Type: AWS::Serverless::Function 
     Properties:

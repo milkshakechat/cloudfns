@@ -7,3 +7,4 @@ export { getTransaction } from './functions/get-transaction/get-transaction';
 export { recallTransaction } from './functions/recall-transaction/recall-transaction';
 export { cashOutTransaction } from './functions/cashout-transaction/cashout-transaction';
 export { confirmCharge } from './functions/confirm-charge/confirm-charge';
+export { permaTransfer } from './functions/perma-transfer/perma-transfer';

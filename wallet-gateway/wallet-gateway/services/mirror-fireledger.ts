@@ -82,6 +82,7 @@ export const CreateMirrorTx_Fireledger = async (args: {
     cashOutTransactionID?: TransactionID;
     referenceID?: TxRefID;
     purchaseManifestID?: PurchaseMainfestID;
+    isPermaTransfer?: boolean;
 }): Promise<Tx_MirrorFireLedger> => {
     const {
         txID, // mirror id QLDB
@@ -98,6 +99,7 @@ export const CreateMirrorTx_Fireledger = async (args: {
         cashOutTransactionID,
         referenceID,
         purchaseManifestID,
+        isPermaTransfer,
     } = args;
     const now = createFirestoreTimestamp();
 
@@ -131,6 +133,7 @@ export const CreateMirrorTx_Fireledger = async (args: {
                   walletAliasID,
               })
             : undefined,
+        isPermaTransfer: isPermaTransfer ? isPermaTransfer : false,
     };
 
     const tx = await createFirestoreDoc<MirrorTransactionID, Tx_MirrorFireLedger>({

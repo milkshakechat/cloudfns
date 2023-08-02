@@ -12,11 +12,9 @@ export const initFirebase = async () => {
     // path to repo working directory
     // console.log(`process.env.GCP_KEYFILE_BASE64 `, process.env.GCP_KEYFILE_BASE64);
     const base64KeyFile = Buffer.from(process.env.GCP_KEYFILE_BASE64 || '', 'base64').toString('utf-8');
-    console.log(`base64KeyFile gcp`, base64KeyFile);
-    console.log(`typeof base64KeyFile`, typeof base64KeyFile);
+
     const credential = admin.credential.cert(decodeBody(base64KeyFile));
-    console.log(`credentials`, credential);
-    console.log(`typeof credentials`, typeof credential);
+
     if (admin.apps.length === 0) {
         console.log(`Init for 1st time`);
         const firebaseConfig = await getFirebaseConfig();
