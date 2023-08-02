@@ -16,10 +16,11 @@ import config from "../config.env";
 import { createVideoTranscodingJob } from "../services/video-transcoder";
 import { Storage_GCP, initStorageBucket_GCP } from "../services/private-bucket";
 import { protos } from "@google-cloud/video-transcoder";
+import { getVideoFileExtension } from "@milkshakechat/helpers";
 
 import * as dotenv from "dotenv";
-import { getVideoFileExtension } from "@milkshakechat/helpers";
-dotenv.config();
+const envFile = process.env.NODE_ENV ? `.env.${process.env.NODE_ENV}` : ".env";
+dotenv.config({ path: envFile });
 
 /**
  * FFMPEG only works on Node16 cloud functions!

@@ -2,7 +2,9 @@ import { SecretManagerServiceClient } from "@google-cloud/secret-manager";
 import { GoogleAuth } from "google-auth-library";
 import config from "../config.env";
 import * as dotenv from "dotenv";
-dotenv.config();
+
+const envFile = process.env.NODE_ENV ? `.env.${process.env.NODE_ENV}` : ".env";
+dotenv.config({ path: envFile });
 
 async function accessSecretVersion({
   projectId,

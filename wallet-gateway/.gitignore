@@ -212,3 +212,5 @@ aws-cli-credentials.csv
 .env
 .env.json
 .env.deploy
+.env.production
+.env.production.json

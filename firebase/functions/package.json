@@ -8,9 +8,9 @@
     "serve": "npm run build && firebase emulators:start --only functions",
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
-    "deploy": "firebase deploy --only functions",
-    "deploy:staging": "npm run clean && npm run build && npm run deploy",
     "deploy:specific": "firebase deploy --only functions:onpurchaseintentsuccess",
+    "deploy:staging": "npm run clean && firebase use milkshake-dev-faf77 && npm run build && firebase deploy --only functions",
+    "deploy:production": "NODE_ENV=production && npm run clean && firebase use milkshake-club && npm run build && firebase deploy --only functions --project milkshake-club",
     "logs": "firebase functions:log"
   },
   "engines": {

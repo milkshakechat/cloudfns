@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "deploy:staging": "sam build --profile local-developer-kangze && sam deploy --guided --profile local-developer-kangze --config-env wallet-gateway/.env.json"
+    "deploy:staging": "sam build --profile local-developer-kangze && sam deploy --guided --profile local-developer-kangze --config-env wallet-gateway/.env.json",
+    "deploy:production": "sam build --profile local-developer-kangze-prod && sam deploy --guided --profile local-developer-kangze-prod --template-file ./template.production.yaml --config-env wallet-gateway/.env.production.json"
   },
   "author": "",
   "license": "ISC",

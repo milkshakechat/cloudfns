@@ -19,7 +19,7 @@ Use the aws configure import --csv file://path_to_your_file.csv command to impor
 Every time you use aws cli you must run this import.
 
 ```sh
-$ cd cloudfns/api-gateway/
+$ cd cloudfns/wallet-gateway/
 $ aws configure import --csv file://./aws-cli-credentials.csv
 ```
 
