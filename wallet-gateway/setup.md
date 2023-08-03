@@ -87,6 +87,16 @@ Note that this only deploys your resources. The actual API gateway is not yet de
 
 You'll need to also need to set `WALLET_GATEWAY_BASE64_KEY` env variable in the aws lambda console. Only for the `auth-validator` lambda function.
 
+Unfort it doesnt work when we specify a template path, so we just have to swap out vars in the default `template.yaml` file.
+
+```sh
+# does not work
+$ sam build --profile local-developer-kangze-prod && sam deploy --guided --profile local-developer-kangze-prod --config-file ./samconfig.production.toml --template-file ./template.production.yaml
+
+# does work
+$ sam build --profile local-developer-kangze-prod && sam deploy --guided --profile local-developer-kangze-prod --config-file ./samconfig.production.toml 
+```
+
 
 ## Invokation
 

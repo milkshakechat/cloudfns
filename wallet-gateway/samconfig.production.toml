@@ -34,35 +34,3 @@ warm_containers = "EAGER"
 
 [default.local_start_lambda.parameters]
 warm_containers = "EAGER"
-
-
-
-["\\".deploy.parameters]
-stack_name = "wallet-gateway"
-resolve_s3 = true
-s3_prefix = "wallet-gateway"
-region = "us-east-2"
-profile = "local-developer-kangze-prod"
-confirm_changeset = true
-capabilities = "CAPABILITY_IAM"
-image_repositories = []
-
-["wallet-gateway/.env.production.json".deploy.parameters]
-stack_name = "wallet-gateway"
-resolve_s3 = true
-s3_prefix = "wallet-gateway"
-region = "us-east-2"
-profile = "local-developer-kangze-prod"
-confirm_changeset = true
-capabilities = "CAPABILITY_IAM"
-image_repositories = []
-
-["wallet-gateway/.env.production.json".deploy.parameters]
-stack_name = "wallet-gateway"
-resolve_s3 = true
-s3_prefix = "wallet-gateway"
-region = "us-east-2"
-profile = "local-developer-kangze-prod"
-confirm_changeset = true
-capabilities = "CAPABILITY_IAM"
-image_repositories = []

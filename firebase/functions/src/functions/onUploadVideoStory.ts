@@ -12,21 +12,35 @@ import * as logger from "firebase-functions/logger";
 import * as ffmpeg from "fluent-ffmpeg";
 import { mkdirp } from "mkdirp";
 import * as fs from "fs";
-import config from "../config.env";
+import config, { getFirebaseStorageBucketDeployment } from "../config.env";
 import { createVideoTranscodingJob } from "../services/video-transcoder";
 import { Storage_GCP, initStorageBucket_GCP } from "../services/private-bucket";
 import { protos } from "@google-cloud/video-transcoder";
 import { getVideoFileExtension } from "@milkshakechat/helpers";
-
+// import { defineString } from "firebase-functions/params";
 import * as dotenv from "dotenv";
-const envFile = process.env.NODE_ENV ? `.env.${process.env.NODE_ENV}` : ".env";
-dotenv.config({ path: envFile });
+dotenv.config({
+  path:
+    process.env.NODE_ENV === "production"
+      ? ".env.milkshake-club"
+      : ".env.milkshake-dev-faf77",
+});
+
+// unfort we cant easily load env vars for build, so this is our workaround
+// https://github.com/firebase/firebase-tools/issues/5936#issuecomment-1612672434
+// const _NODE_ENV = BUILD_ENV_TARGET.PRODUCTION;
+const _NODE_ENV = process.env.NODE_ENV || "development";
+// const _NODE_ENV = defineString(process.env.NODE_ENV || "development").value();
+// console.log(`defineString.NODE_ENV: ${process.env.NODE_ENV}`);
 
 /**
  * FFMPEG only works on Node16 cloud functions!
  */
 export const onuploadvideostory = onObjectFinalized(
-  { bucket: config.FIREBASE.storageBucket, timeoutSeconds: 540 },
+  {
+    bucket: getFirebaseStorageBucketDeployment(_NODE_ENV),
+    timeoutSeconds: 540,
+  },
   async (event) => {
     console.log(`onUploadVideoStory... ${new Date().toISOString()}}`);
 

@@ -1,4 +1,5 @@
 import { BucketDef, UserID, WalletAliasID } from "@milkshakechat/helpers";
+import { defineString } from "firebase-functions/params";
 
 const devConfig: ConfigEnv = {
   GCLOUD: {
@@ -179,10 +180,10 @@ const prodConfig: ConfigEnv = {
   },
   WALLET_GATEWAY: {
     createWallet: {
-      url: "https://ukywzxz9dc.execute-api.ap-northeast-1.amazonaws.com/Staging/wallet",
+      url: "https://5chl6vcl2c.execute-api.us-east-2.amazonaws.com/Production/wallet",
     },
     confirmCharge: {
-      url: "https://ukywzxz9dc.execute-api.ap-northeast-1.amazonaws.com/Staging/transaction/confirm-charge",
+      url: "https://5chl6vcl2c.execute-api.us-east-2.amazonaws.com/Production/transaction/confirm-charge",
     },
   },
   LEDGER: {
@@ -249,13 +250,34 @@ interface ConfigEnv {
 }
 
 export default (() => {
+  const _NODE_ENV = defineString(process.env.NODE_ENV || "development").value();
+  console.log(
+    `defineString(process.env.NODE_ENV || "development").value(): ${_NODE_ENV}`
+  );
   console.log(`process.env.NODE_ENV: ${process.env.NODE_ENV}`);
-  if (process.env.NODE_ENV === "production") {
+  const NODE_ENV = process.env.NODE_ENV;
+  if (NODE_ENV === "production") {
     return prodConfig;
-  } else if (process.env.NODE_ENV === "staging") {
+  } else if (NODE_ENV === "staging") {
     return stagingConfig;
-  } else if (process.env.NODE_ENV === "development") {
+  } else if (NODE_ENV === "development") {
     return devConfig;
   }
   return devConfig;
 })();
+
+export enum BUILD_ENV_TARGET {
+  PRODUCTION = "production",
+  STAGING = "staging",
+  DEVELOPMENT = "development",
+}
+export const getFirebaseStorageBucketDeployment = (env: string) => {
+  if (env === "production") {
+    return prodConfig.FIREBASE.storageBucket;
+  } else if (env === "staging") {
+    return stagingConfig.FIREBASE.storageBucket;
+  } else if (env === "development") {
+    return devConfig.FIREBASE.storageBucket;
+  }
+  return devConfig.FIREBASE.storageBucket;
+};

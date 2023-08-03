@@ -104,16 +104,16 @@ const prodConfig: ConfigEnv = {
         region: 'us-east-2',
         functions: {
             createWallet: {
-                arn: 'arn:aws:lambda:ap-northeast-1:484953066935:function:wallet-gateway-CreateWalletFunction-TwUYVAzQbdKz',
+                arn: 'arn:aws:lambda:us-east-2:903433420206:function:wallet-gateway-CreateWalletFunction-HzRRBBPRt5bA',
             },
             getWallet: {
-                arn: 'arn:aws:lambda:ap-northeast-1:484953066935:function:wallet-gateway-GetWalletFunction-0ysIvPbmAIKI',
+                arn: 'arn:aws:lambda:us-east-2:903433420206:function:wallet-gateway-GetWalletFunction-IDeoPJmfyowA',
             },
         },
     },
     SECRETS: {
         WALLET_GATEWAY_XCLOUD_GCP: {
-            SecretId: 'xcloud-wallet-gateway-gcp-to-aws/dev',
+            SecretId: 'xcloud-wallet-gateway-gcp-to-aws/prod',
         },
         FIREBASE_CONFIG: {
             secretId: 'firebase-init',
@@ -140,7 +140,7 @@ const prodConfig: ConfigEnv = {
     SENDBIRD: {
         SENDBIRD_APP_ID: 'AE88AAA6-1206-4FEF-B384-052B14A3C6B6',
         API_URL: 'https://api-AE88AAA6-1206-4FEF-B384-052B14A3C6B6.sendbird.com',
-        WEBHOOK_URL: 'https://sendbirdpushnotifications-hcdyzvq35a-uc.a.run.app/',
+        WEBHOOK_URL: 'https://sendbirdpushnotifications-qagjtluvcq-uc.a.run.app/',
     },
 };
 
