@@ -4,7 +4,10 @@ import * as dotenv from 'dotenv';
 import { GoogleAuth } from 'google-auth-library';
 import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 import { decodeBody } from './utils';
-dotenv.config();
+
+dotenv.config({
+    path: process.env.NODE_ENV === 'production' ? '.env.production' : '.env',
+});
 
 async function accessSecretVersionAWS({
     SecretId,

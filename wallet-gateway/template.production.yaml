@@ -13,17 +13,16 @@ Globals:
     Tracing: Active
     Environment:
       Variables: 
-        NODE_ENV: 'staging'
-        WALLET_GATEWAY_BASE64_KEY: '______==' # // the right way to do this is using secretsmanager
-        GCP_KEYFILE_BASE64: ______==' # !Sub '{{resolve:secretsmanager:MySecretName:SecretString:MySecretKey}}'
-        
+        NODE_ENV: 'production'
+      #   WALLET_GATEWAY_BASE64_KEY: '_____==' # // the right way to do this is using secretsmanager
+      #   GCP_KEYFILE_BASE64: '_____==' # !Sub '{{resolve:secretsmanager:MySecretName:SecretString:MySecretKey}}'
   Api:
     TracingEnabled: true
 Resources:
   MyAuthApi:
       Type: AWS::Serverless::Api
       Properties:
-        StageName: Staging
+        StageName: Production
         Auth:
           DefaultAuthorizer: WalletAdminAuthorizer
           Authorizers:

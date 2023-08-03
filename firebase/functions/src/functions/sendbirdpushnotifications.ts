@@ -13,12 +13,16 @@ import {
 } from "../services/push";
 import * as crypto from "crypto";
 import { getSendbirdSecret } from "../utils/secrets";
+import { defineString } from "firebase-functions/params";
 
 // request.body = https://sendbird.com/docs/chat/v3/platform-api/webhook/events/group-channel#2-group-channel-message-send
 export const sendbirdpushnotifications = onRequest(
-  { cors: ["sendbird.com"], timeoutSeconds: 300 },
+  { cors: ["*.sendbird.com"], timeoutSeconds: 300 },
   async (request, response) => {
     console.log("----> sendbirdPushNotifications");
+    const _NODE_ENV = defineString(process.env.NODE_ENV || "development");
+    console.log("_NODE_ENV = ", _NODE_ENV);
+    console.log("_NODE_ENV.value()", _NODE_ENV.value());
     const rawBody = request.rawBody;
     const signature = request.get("x-sendbird-signature");
     const sendBirdToken = await getSendbirdSecret();

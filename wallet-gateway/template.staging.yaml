@@ -14,9 +14,8 @@ Globals:
     Environment:
       Variables: 
         NODE_ENV: 'staging'
-        WALLET_GATEWAY_BASE64_KEY: '______==' # // the right way to do this is using secretsmanager
-        GCP_KEYFILE_BASE64: ______==' # !Sub '{{resolve:secretsmanager:MySecretName:SecretString:MySecretKey}}'
-        
+        # WALLET_GATEWAY_BASE64_KEY: '____==' # // the right way to do this is using secretsmanager
+        # GCP_KEYFILE_BASE64: '____==' # !Sub '{{resolve:secretsmanager:MySecretName:SecretString:MySecretKey}}'
   Api:
     TracingEnabled: true
 Resources:

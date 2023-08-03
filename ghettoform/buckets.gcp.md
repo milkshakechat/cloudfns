@@ -24,7 +24,9 @@ Permissions:
 $ gcloud storage buckets update gs://BUCKET_NAME --cors-file=CORS_CONFIG_FILE
 
 # actual code to run
-$ cd terraform
+$ cd ghettoform
 $ gcloud storage buckets update gs://user-stories-social --cors-file=user-story-socials.storage-cors.dev.json
 $ gcloud storage buckets update gs://milkshake-dev-faf77.appspot.com --cors-file=firebase-bucket.storage-cors.dev.json
 ```
+
+

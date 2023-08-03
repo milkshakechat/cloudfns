@@ -1,4 +1,5 @@
 import { BucketDef, UserID, WalletAliasID } from "@milkshakechat/helpers";
+import { defineString } from "firebase-functions/params";
 
 const devConfig: ConfigEnv = {
   GCLOUD: {
@@ -134,7 +135,7 @@ const stagingConfig: ConfigEnv = {
 };
 const prodConfig: ConfigEnv = {
   GCLOUD: {
-    projectId: "milkshake-dev-faf77",
+    projectId: "milkshake-club",
   },
   SECRETS: {
     FIREBASE_CONFIG: {
@@ -163,38 +164,38 @@ const prodConfig: ConfigEnv = {
     },
   },
   FIREBASE: {
-    apiKey: "AIzaSyAqVL1P4PsE40Bd-Mu8CnqwczpC-hSTaz0",
-    authDomain: "milkshake-dev-faf77.firebaseapp.com",
-    projectId: "milkshake-dev-faf77",
-    storageBucket: "milkshake-dev-faf77.appspot.com",
-    messagingSenderId: "642004369083",
-    appId: "1:642004369083:web:74b7c685be091ce6b4f39e",
-    measurementId: "G-N0YXCSQJ89",
+    apiKey: "AIzaSyDDl7fwpaw2jq0e4P9HXLVRBiHgPUlvNX4",
+    authDomain: "milkshake-club.firebaseapp.com",
+    projectId: "milkshake-club",
+    storageBucket: "milkshake-club.appspot.com",
+    messagingSenderId: "373735760752",
+    appId: "1:373735760752:web:692571f8870097b27625b5",
+    measurementId: "G-Z8YF9KBJ8F",
   },
   VIDEO_TRANSCODER: {
     bucket: {
-      name: "user-stories-social",
-      location: "asia-northeast1",
+      name: "user-stories-social-prod",
+      location: "us-multi-region",
     },
   },
   WALLET_GATEWAY: {
     createWallet: {
-      url: "https://ukywzxz9dc.execute-api.ap-northeast-1.amazonaws.com/Staging/wallet",
+      url: "https://5chl6vcl2c.execute-api.us-east-2.amazonaws.com/Production/wallet",
     },
     confirmCharge: {
-      url: "https://ukywzxz9dc.execute-api.ap-northeast-1.amazonaws.com/Staging/transaction/confirm-charge",
+      url: "https://5chl6vcl2c.execute-api.us-east-2.amazonaws.com/Production/transaction/confirm-charge",
     },
   },
   LEDGER: {
     globalCookieStore: {
       userID: "global-cookie-store-owner" as UserID,
       walletAliasID:
-        "milkshake-v0.1_global-cookie-store-wallet" as WalletAliasID,
+        "milkshake-v1.0_global-cookie-store-wallet" as WalletAliasID,
     },
   },
   STRIPE: {
     MAIN_BILLING_CYCLE_PRODUCT_PRICE: {
-      id: "price_1NTvKSBbKljWimkInc1hgIdw",
+      id: "price_1Nag8ABbKljWimkIQsEdwwGZ",
     },
   },
 };
@@ -249,11 +250,34 @@ interface ConfigEnv {
 }
 
 export default (() => {
-  // console.log(`process.env.NODE_ENV: ${process.env.NODE_ENV}`);
-  if (process.env.NODE_ENV === "production") {
+  const _NODE_ENV = defineString(process.env.NODE_ENV || "development").value();
+  console.log(
+    `defineString(process.env.NODE_ENV || "development").value(): ${_NODE_ENV}`
+  );
+  console.log(`process.env.NODE_ENV: ${process.env.NODE_ENV}`);
+  const NODE_ENV = process.env.NODE_ENV;
+  if (NODE_ENV === "production") {
     return prodConfig;
-  } else if (process.env.NODE_ENV === "staging") {
+  } else if (NODE_ENV === "staging") {
     return stagingConfig;
+  } else if (NODE_ENV === "development") {
+    return devConfig;
   }
   return devConfig;
 })();
+
+export enum BUILD_ENV_TARGET {
+  PRODUCTION = "production",
+  STAGING = "staging",
+  DEVELOPMENT = "development",
+}
+export const getFirebaseStorageBucketDeployment = (env: string) => {
+  if (env === "production") {
+    return prodConfig.FIREBASE.storageBucket;
+  } else if (env === "staging") {
+    return stagingConfig.FIREBASE.storageBucket;
+  } else if (env === "development") {
+    return devConfig.FIREBASE.storageBucket;
+  }
+  return devConfig.FIREBASE.storageBucket;
+};

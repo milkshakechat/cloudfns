@@ -211,4 +211,6 @@ $RECYCLE.BIN/
 aws-cli-credentials.csv
 .env
 .env.json
-.env.deploy
+.env.staging
+.env.production
+.env.production.json

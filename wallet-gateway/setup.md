@@ -19,7 +19,7 @@ Use the aws configure import --csv file://path_to_your_file.csv command to impor
 Every time you use aws cli you must run this import.
 
 ```sh
-$ cd cloudfns/api-gateway/
+$ cd cloudfns/wallet-gateway/
 $ aws configure import --csv file://./aws-cli-credentials.csv
 ```
 
@@ -86,6 +86,16 @@ $ npm run deploy:staging
 Note that this only deploys your resources. The actual API gateway is not yet deployed and you can do that manually in the AWS console `API Gateway`. You must pick a stage to deploy to (prod, stagin, dev, etc.)
 
 You'll need to also need to set `WALLET_GATEWAY_BASE64_KEY` env variable in the aws lambda console. Only for the `auth-validator` lambda function.
+
+Unfort it doesnt work when we specify a template path, so we just have to swap out vars in the default `template.yaml` file.
+
+```sh
+# does not work
+$ sam build --profile local-developer-kangze-prod && sam deploy --guided --profile local-developer-kangze-prod --config-file ./samconfig.production.toml --template-file ./template.production.yaml
+
+# does work
+$ sam build --profile local-developer-kangze-prod && sam deploy --guided --profile local-developer-kangze-prod --config-file ./samconfig.production.toml 
+```
 
 
 ## Invokation
