@@ -49,7 +49,7 @@ export const createuserfirestore = functions
         createdAt: now,
         isPaidChat: false,
         disabled: false,
-        privacyMode: privacyModeEnum.private,
+        privacyMode: privacyModeEnum.public,
         themeColor: defaultThemeColorHex,
         language: localeEnum.english,
         currency: CurrencyEnum.USD,
