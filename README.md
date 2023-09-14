@@ -2,7 +2,9 @@
 
 
 
-https://github.com/milkshakechat/cloudfns/assets/96885027/63899bb4-1116-489a-90d2-e56b272cc581
+https://www.youtube.com/shorts/GJWhyiDRjOk
+
+[video](https://github.com/milkshakechat/milkshake/assets/96885027/6a80b351-9409-49ca-a729-2d9bc3dddefd)
 
 
 ```sh
