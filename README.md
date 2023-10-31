@@ -2,9 +2,13 @@
 
 
 
-https://www.youtube.com/shorts/GJWhyiDRjOk
+https://www.youtube.com/shorts/6v9QNVE7WPQ
 
-[video](https://github.com/milkshakechat/milkshake/assets/96885027/6a80b351-9409-49ca-a729-2d9bc3dddefd)
+
+
+https://github.com/milkshakechat/cloudfns/assets/96885027/36a0b29f-8d0b-44a9-8916-aeb91392bf7c
+
+
 
 
 ```sh
